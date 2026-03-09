@@ -19,7 +19,8 @@ Bridges OpenClaw and Claude Code. Enables launching and connecting to Claude Cod
 
 **Install:**
 ```bash
-claude skill install github:ZLHad/agent-skills/openclaw-skills/cc-bridge
+git clone --depth 1 https://github.com/ZLHad/agent-skills /tmp/agent-skills
+cp -r /tmp/agent-skills/openclaw-skills/cc-bridge ~/.openclaw/skills/
 ```
 
 ## Claude Code Skills
@@ -29,7 +30,8 @@ Full-pipeline IEEE Trans reference management assistant. Handles format validati
 
 **Install:**
 ```bash
-claude skill install github:ZLHad/agent-skills/claude-code-skills/ieee-reference-manager
+git clone --depth 1 https://github.com/ZLHad/agent-skills /tmp/agent-skills
+cp -r /tmp/agent-skills/claude-code-skills/ieee-reference-manager ~/.claude/skills/
 ```
 
 ## License
