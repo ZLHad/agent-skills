@@ -1,0 +1,5 @@
+.DS_Store
+*.zip
+.claude/
+cc-bridge/
+ieee-reference-manager/
