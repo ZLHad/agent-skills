@@ -20,7 +20,7 @@ Bridges OpenClaw and Claude Code. Enables launching and connecting to Claude Cod
 **Install:**
 ```bash
 git clone --depth 1 https://github.com/ZLHad/agent-skills /tmp/agent-skills
-cp -r /tmp/agent-skills/openclaw-skills/cc-bridge ~/.openclaw/skills/
+cp -r /tmp/agent-skills/openclaw-skills/cc-bridge ~/.openclaw/workspace/skills/
 ```
 
 ## Claude Code Skills
