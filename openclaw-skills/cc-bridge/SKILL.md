@@ -1,17 +1,22 @@
 ---
-name: cc-bridge
+name: claude-code-bridge
 description: >
-  This skill should be used when the user wants to "启动cc", "开启cc", "启动claude code",
-  "开启claude code", "连接cc", "/cc start", "打开cc", "进入cc模式",
-  "关闭cc", "退出cc", "停止cc", "/cc stop", "重启cc", "/cc restart",
-  "cc状态", "cc status", "/cc status",
-  or when an active CC session exists and the user sends a message that should
-  be forwarded to Claude Code. Bridges OpenClaw (QQ/Telegram/etc.) to a
-  persistent interactive Claude Code CLI session via tmux.
-version: 0.2.0
+  Bridges OpenClaw (QQ, Telegram, WeChat, and other messaging channels) to a
+  persistent Claude Code CLI session running in a background tmux process.
+  Enables starting, stopping, restarting, and monitoring Claude Code sessions
+  directly from any chat interface. Automatically detects session state on
+  every message, routes user input to the active Claude Code session, and
+  handles tool-approval prompts so the user can approve or deny Claude Code
+  actions without leaving their chat app. Ideal for developers who want to
+  control Claude Code from a mobile device or a group chat.
+  Trigger phrases: "start claude code", "open claude code", "cc status",
+  "stop claude code", "restart cc", "启动claude code", "开启claude code",
+  "连接cc", "cc状态", "关闭cc", "退出cc", "重启cc", "/cc start", "/cc stop",
+  "/cc restart", "/cc status".
+version: 0.2.1
 ---
 
-# CC-Bridge Skill
+# Claude Code Bridge
 
 Bridge every incoming message to a live, persistent `claude` CLI process running
 in a background tmux session. The user interacts via QQ/Telegram/any channel;
