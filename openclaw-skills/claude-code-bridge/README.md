@@ -1,4 +1,4 @@
-# CC-Bridge — OpenClaw ↔ Claude Code CLI Bridge
+# Claude Code Bridge — OpenClaw ↔ Claude Code CLI Bridge
 
 [中文](#中文文档) | [English](#english-documentation)
 
@@ -8,9 +8,9 @@
 
 ### 简介
 
-**CC-Bridge** 是一个 OpenClaw Skill，让你通过 QQ、Telegram 等任意聊天渠道，远程操作一个**真正的、交互式的 Claude Code 终端会话**。
+**Claude Code Bridge** 是一个 OpenClaw Skill，让你通过 QQ、Telegram 等任意聊天渠道，远程操作一个**真正的、交互式的 Claude Code 终端会话**。
 
-不是简单的 API 调用或任务委派——而是像你坐在电脑前打开终端输入 `claude` 一样的完整体验。
+不是简单的 API 调用或任务委派——而是像你坐在电脑前打开终端输入 `claude` 一样的完整体验。支持指定工作目录和沙盒模式。
 
 ### 工作原理
 
@@ -21,13 +21,13 @@
   OpenClaw Agent (接收消息)
      │
      ▼
-  CC-Bridge Skill (tmux 桥接)
+  Claude Code Bridge (tmux 桥接)
      │
      ▼
   Claude Code CLI (真实终端会话)
      │
      ▼
-  CC-Bridge (捕获输出 → 返回给你)
+  Claude Code Bridge (捕获输出 → 返回给你)
 ```
 
 核心技术：
@@ -47,28 +47,30 @@
 
 ### 安装
 
-将 `cc-bridge` 目录放到 OpenClaw 的 skills 目录下：
+将 `claude-code-bridge` 目录放到 OpenClaw 的 skills 目录下：
 
 ```bash
 # 方式 1：直接克隆
-git clone https://github.com/your-username/cc-bridge.git \
-  ~/.openclaw/workspace/skills/cc-bridge
+git clone https://github.com/your-username/claude-code-bridge.git \
+  ~/.openclaw/workspace/skills/claude-code-bridge
 
 # 方式 2：手动复制
-cp -r cc-bridge ~/.openclaw/workspace/skills/
+cp -r claude-code-bridge ~/.openclaw/workspace/skills/
 ```
 
 验证安装：
 ```bash
 openclaw skills list
-# 应该看到: ✓ ready │ 📦 cc-bridge
+# 应该看到: ✓ ready │ 📦 claude-code-bridge
 ```
 
 ### 快速开始
 
 | 你发送 | 效果 |
 |--------|------|
-| `启动cc` | 启动 Claude Code 会话 |
+| `启动cc` | 启动 Claude Code（会询问工作目录） |
+| `在 ~/projects/paper 打开cc` | 在指定目录启动 |
+| `沙盒打开cc` | 沙盒模式启动（临时目录，关闭自动清理） |
 | 任意消息 | 转发给 Claude Code |
 | `y` / `1` / `是` | 同意 CC 的工具审批 |
 | `n` / `3` / `否` | 拒绝 CC 的工具审批 |
@@ -80,10 +82,13 @@ openclaw skills list
 
 | 命令 | 说明 |
 |------|------|
-| `启动cc` / `开启cc` / `/cc start` | 启动新的 CC 会话 |
-| `关闭cc` / `退出cc` / `/cc stop` | 关闭会话 |
-| `重启cc` / `/cc restart` | 重启会话 |
+| `启动cc` / `开启cc` / `/cc start` | 启动 CC 会话（询问工作目录） |
+| `在 <路径> 打开cc` | 在指定目录启动 CC |
+| `沙盒打开cc` / `沙盒模式启动cc` | 沙盒模式启动（临时目录） |
+| `关闭cc` / `退出cc` / `/cc stop` | 关闭会话（沙盒自动清理） |
+| `重启cc` / `/cc restart` | 重启会话（保留原工作目录） |
 | `cc状态` / `/cc status` | 查看会话状态 |
+| `cc在哪` / `cc目录` / `cc workdir` | 查看当前工作目录 |
 | `/cc peek` | 查看终端原始画面（最近50行） |
 | `/cc history [N]` | 查看最近 N 行对话历史 |
 | `/plan`、`/model`、`/compact` 等 | CC 自身的斜杠命令，直接透传 |
@@ -107,9 +112,17 @@ openclaw skills list
 2. 发 `/cc history 200` 查看完整历史
 3. CC 完成后再发消息会获取新的输出
 
+### 工作目录与沙盒
+
+启动时可以指定 Claude Code 的工作目录：
+
+- **指定路径**：`在 ~/Documents/Code 打开cc` — CC 在该目录启动
+- **沙盒模式**：`沙盒打开cc` — 在 `/tmp/cc-sandbox-xxx` 启动，关闭时自动清理
+- **不指定**：`启动cc` — 会询问工作目录，不指定则默认沙盒
+
 ### 功能覆盖对比
 
-| Claude Code 原生功能 | CC-Bridge 支持 | 说明 |
+| Claude Code 原生功能 | Bridge 支持 | 说明 |
 |---------------------|:--------------:|------|
 | 发送消息/提问 | ✅ | 完整支持 |
 | 代码编辑/生成 | ✅ | 完整支持 |
@@ -142,6 +155,7 @@ openclaw skills list
 - 输出检测：日志文件大小连续稳定 3 次（间隔 0.8s）视为完成
 - 默认超时：90 秒，`--long` 模式：300 秒
 - Claude Code 二进制：`$CLAUDE_BIN`（默认 `~/.local/bin/claude`）
+- 工作目录和沙盒状态：存储在 `~/.openclaw/claude-code-bridge/` 下
 
 ### 常见问题
 
@@ -163,9 +177,9 @@ A: 目前仅支持 macOS 和 Linux（依赖 tmux）。Windows 需要 WSL。
 
 ### Overview
 
-**CC-Bridge** is an OpenClaw Skill that lets you operate a **real, interactive Claude Code terminal session** remotely through any chat channel — QQ, Telegram, Discord, etc.
+**Claude Code Bridge** is an OpenClaw Skill that lets you operate a **real, interactive Claude Code terminal session** remotely through any chat channel — QQ, Telegram, Discord, etc.
 
-This is not a simple API call or task delegation — it's the full Claude Code CLI experience, as if you were sitting at your computer typing `claude` in a terminal.
+This is not a simple API call or task delegation — it's the full Claude Code CLI experience, as if you were sitting at your computer typing `claude` in a terminal. Supports custom working directories and sandbox mode.
 
 ### How It Works
 
@@ -176,13 +190,13 @@ Your Phone (QQ/Telegram/...)
   OpenClaw Agent (receives message)
      │
      ▼
-  CC-Bridge Skill (tmux bridge)
+  Claude Code Bridge (tmux bridge)
      │
      ▼
   Claude Code CLI (real terminal session)
      │
      ▼
-  CC-Bridge (captures output → sends back to you)
+  Claude Code Bridge (captures output → sends back to you)
 ```
 
 Core technology:
@@ -202,43 +216,48 @@ Core technology:
 
 ### Installation
 
-Place the `cc-bridge` directory in OpenClaw's skills directory:
+Place the `claude-code-bridge` directory in OpenClaw's skills directory:
 
 ```bash
 # Option 1: Clone directly
-git clone https://github.com/your-username/cc-bridge.git \
-  ~/.openclaw/workspace/skills/cc-bridge
+git clone https://github.com/your-username/claude-code-bridge.git \
+  ~/.openclaw/workspace/skills/claude-code-bridge
 
 # Option 2: Manual copy
-cp -r cc-bridge ~/.openclaw/workspace/skills/
+cp -r claude-code-bridge ~/.openclaw/workspace/skills/
 ```
 
 Verify installation:
 ```bash
 openclaw skills list
-# Should show: ✓ ready │ 📦 cc-bridge
+# Should show: ✓ ready │ 📦 claude-code-bridge
 ```
 
 ### Quick Start
 
 | You Send | Effect |
 |----------|--------|
-| `启动cc` (Start CC) | Launch Claude Code session |
+| `启动cc` (Start CC) | Launch Claude Code (asks for working directory) |
+| `在 ~/projects/paper 打开cc` | Start in specified directory |
+| `沙盒打开cc` (Sandbox) | Start in temp directory (auto-cleanup) |
 | Any message | Forwarded to Claude Code |
 | `y` / `1` | Approve CC's tool request |
 | `n` / `3` | Deny CC's tool request |
 | `/plan` | Switch CC to Plan mode |
 | `/model sonnet` | Switch CC's model |
-| `关闭cc` (Stop CC) | Close session |
+| `关闭cc` (Stop CC) | Close session (sandbox auto-cleaned) |
 
 ### Full Command Reference
 
 | Command | Description |
 |---------|-------------|
-| `启动cc` / `/cc start` | Start a new CC session |
-| `关闭cc` / `/cc stop` | Stop the session |
-| `重启cc` / `/cc restart` | Restart the session |
+| `启动cc` / `/cc start` | Start CC session (asks for workdir) |
+| `在 <path> 打开cc` | Start CC in specified directory |
+| `沙盒打开cc` | Start in sandbox (temp directory) |
+| `关闭cc` / `/cc stop` | Stop session (sandbox auto-cleaned) |
+| `重启cc` / `/cc restart` | Restart session (keeps workdir) |
 | `cc状态` / `/cc status` | Check session status |
+| `cc在哪` / `cc workdir` | Show current working directory |
 | `/cc peek` | View raw terminal screen (last 50 lines) |
 | `/cc history [N]` | View last N lines of conversation history |
 | `/plan`, `/model`, `/compact`, etc. | CC's own slash commands, passed through directly |
@@ -264,7 +283,7 @@ For large tasks (e.g., "refactor the entire project"), the bridge automatically 
 
 ### Feature Coverage
 
-| Claude Code Native Feature | CC-Bridge Support | Notes |
+| Claude Code Native Feature | Bridge Support | Notes |
 |---------------------------|:-----------------:|-------|
 | Send messages / ask questions | ✅ | Full support |
 | Code editing / generation | ✅ | Full support |
@@ -297,11 +316,12 @@ For large tasks (e.g., "refactor the entire project"), the bridge automatically 
 - Output detection: log file size stable for 3 consecutive checks (0.8s interval)
 - Default timeout: 90s, `--long` mode: 300s
 - Claude Code binary: `$CLAUDE_BIN` (defaults to `~/.local/bin/claude`)
+- Working directory & sandbox state: stored in `~/.openclaw/claude-code-bridge/`
 
 ### FAQ
 
 **Q: Do I need an Anthropic API Key?**
-A: No. CC-Bridge uses your locally logged-in Claude Code CLI with OAuth authentication.
+A: No. Claude Code Bridge uses your locally logged-in Claude Code CLI with OAuth authentication.
 
 **Q: Can I run multiple sessions?**
 A: Yes. Each OpenClaw channel (QQ DM/group, Telegram chat) is independent.
@@ -317,12 +337,12 @@ A: Currently macOS and Linux only (requires tmux). Windows users need WSL.
 ## Project Structure
 
 ```
-cc-bridge/
+claude-code-bridge/
 ├── SKILL.md              # Skill metadata & agent instructions
 ├── LICENSE               # MIT License
 ├── README.md             # This file
 ├── scripts/
-│   └── cc-bridge.sh      # Core bridge script (start/send/approve/stop/...)
+│   └── claude-code-bridge.sh  # Core bridge script
 ├── references/
 │   └── usage.md          # User-facing quick reference (Chinese)
 └── docs/                 # Additional documentation

@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
-# cc-bridge.sh — OpenClaw ↔ Claude Code CLI 桥接脚本
+# claude-code-bridge.sh — OpenClaw ↔ Claude Code CLI 桥接脚本
 #
 # Usage:
-#   cc-bridge.sh <session_id> start                    # 启动新 CC 会话
-#   cc-bridge.sh <session_id> send "<message>"         # 发送消息并等待回复
-#   cc-bridge.sh <session_id> send "<message>" --long   # 长任务模式 (5分钟超时)
-#   cc-bridge.sh <session_id> approve [1|2|3|y|n]      # 回应 CC 的审批提示
-#   cc-bridge.sh <session_id> stop                     # 关闭会话
-#   cc-bridge.sh <session_id> restart                  # 重启会话
-#   cc-bridge.sh <session_id> status                   # 查看状态
-#   cc-bridge.sh <session_id> peek                     # 查看当前屏幕内容
-#   cc-bridge.sh <session_id> history [N]              # 查看最近 N 行滚动缓冲区
-#   cc-bridge.sh <session_id> interrupt                # 发送 Ctrl+C 中断当前操作
-#   cc-bridge.sh <session_id> key "<key>"              # 发送特殊按键 (Escape/Up/Down/Tab)
+#   claude-code-bridge.sh <session_id> start [workdir|--sandbox]  # 启动 CC 会话（可选工作目录）
+#   claude-code-bridge.sh <session_id> send "<message>"           # 发送消息并等待回复
+#   claude-code-bridge.sh <session_id> send "<message>" --long    # 长任务模式 (5分钟超时)
+#   claude-code-bridge.sh <session_id> approve [1|2|3|y|n]       # 回应 CC 的审批提示
+#   claude-code-bridge.sh <session_id> stop                      # 关闭会话（沙盒自动清理）
+#   claude-code-bridge.sh <session_id> restart [workdir|--sandbox] # 重启会话
+#   claude-code-bridge.sh <session_id> status                    # 查看状态
+#   claude-code-bridge.sh <session_id> workdir                   # 查看当前工作目录
+#   claude-code-bridge.sh <session_id> peek                      # 查看当前屏幕内容
+#   claude-code-bridge.sh <session_id> history [N]               # 查看最近 N 行滚动缓冲区
+#   claude-code-bridge.sh <session_id> interrupt                 # 发送 Ctrl+C 中断当前操作
+#   claude-code-bridge.sh <session_id> key "<key>"               # 发送特殊按键
 
 set -euo pipefail
 
-SESSION_ID="${1:?[cc-bridge] 缺少 session_id 参数}"
-ACTION="${2:?[cc-bridge] 缺少 action 参数 (start|send|approve|stop|restart|status|peek|history)}"
+SESSION_ID="${1:?[claude-code-bridge] 缺少 session_id 参数}"
+ACTION="${2:?[claude-code-bridge] 缺少 action 参数 (start|send|approve|stop|restart|status|workdir|peek|history)}"
 MESSAGE="${3:-}"
 FLAG="${4:-}"
 
 # ── 常量 ─────────────────────────────────────────────────────────────────────
 CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
-STATE_DIR="$HOME/.openclaw/cc-bridge"
+STATE_DIR="$HOME/.openclaw/claude-code-bridge"
 SCROLLBACK_LINES=50000           # tmux 滚动缓冲区大小
 STABLE_INTERVAL=0.8              # 轮询间隔(秒)
 STABLE_NEEDED=3                  # 连续稳定次数
@@ -42,6 +43,8 @@ SAFE_ID="$(echo "$SESSION_ID" | tr -cd '[:alnum:]_' | cut -c1-20)"
 TMUX_NAME="ccb_${SAFE_ID}"
 LOG_FILE="$STATE_DIR/${TMUX_NAME}.log"
 OFFSET_FILE="$STATE_DIR/${TMUX_NAME}.offset"
+WORKDIR_FILE="$STATE_DIR/${TMUX_NAME}.workdir"
+SANDBOX_FLAG="$STATE_DIR/${TMUX_NAME}.sandbox"
 
 # ── 工具函数 ──────────────────────────────────────────────────────────────────
 
@@ -125,24 +128,47 @@ wait_for_stable_output() {
 
 do_start() {
     if is_running; then
-        echo "[cc-bridge] ⚠️  已有活跃会话 ($TMUX_NAME)，如需重开请先 stop 或 restart"
+        echo "[claude-code-bridge] ⚠️  已有活跃会话 ($TMUX_NAME)，如需重开请先 stop 或 restart"
         return 0
     fi
+
+    # 解析工作目录参数
+    local workdir="${MESSAGE:-}"
+    local is_sandbox=0
+
+    if [[ "$workdir" == "--sandbox" || -z "$workdir" ]]; then
+        # 沙盒模式：创建临时目录
+        workdir=$(mktemp -d /tmp/cc-sandbox-XXXXXX)
+        is_sandbox=1
+        echo "$workdir" > "$SANDBOX_FLAG"
+    else
+        # 展开 ~ 为 $HOME
+        workdir="${workdir/#\~/$HOME}"
+    fi
+
+    # 验证目录存在
+    if [[ ! -d "$workdir" ]]; then
+        echo "[claude-code-bridge] ❌ 目录不存在: $workdir"
+        # 清理可能刚创建的沙盒标记
+        rm -f "$SANDBOX_FLAG"
+        return 1
+    fi
+
+    # 记录工作目录
+    echo "$workdir" > "$WORKDIR_FILE"
 
     # 清理旧日志
     > "$LOG_FILE"
     echo "0" > "$OFFSET_FILE"
 
-    echo "[cc-bridge] 🚀 正在启动 Claude Code..."
-
     # 构建启动命令：
+    #   - cd 到指定工作目录
     #   - unset CLAUDECODE/CLAUDE_CODE  防止 "nested session" 错误
     #   - export TERM                    保证 CC 可以正常渲染
     local launch_cmd
-    launch_cmd="unset CLAUDECODE CLAUDE_CODE; export TERM=xterm-256color; exec '$CLAUDE_BIN'"
+    launch_cmd="cd '$workdir' && unset CLAUDECODE CLAUDE_CODE; export TERM=xterm-256color; exec '$CLAUDE_BIN'"
 
     # 在 tmux 中启动 claude
-    #   - set history-limit 为大滚动缓冲区，确保长会话不丢内容
     tmux new-session -d -s "$TMUX_NAME" -x 220 -y 50 "bash --login -c '$launch_cmd'"
     tmux set-option -t "$TMUX_NAME" history-limit "$SCROLLBACK_LINES" 2>/dev/null || true
     sleep 0.5
@@ -156,24 +182,21 @@ do_start() {
     # 记录初始偏移
     save_current_offset
 
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "✅ Claude Code 会话已启动！"
-    echo "📌 会话 ID: $SESSION_ID"
-    echo "💬 现在发消息就会直接转发给 Claude Code"
-    echo "🔧 CC 斜杠命令也可直接发送：/plan /model /compact 等"
-    echo "🛑 发送「关闭cc」退出会话"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "✅ Claude Code 已启动"
+    echo "📁 工作目录: $workdir"
+    if (( is_sandbox )); then
+        echo "🧪 沙盒模式（关闭时自动清理）"
+    fi
 }
 
 do_send() {
     if ! is_running; then
-        echo "[cc-bridge] ❌ 没有活跃的 CC 会话，请先发送「启动cc」"
+        echo "[claude-code-bridge] ❌ 没有活跃的 CC 会话，请先发送「启动cc」"
         return 1
     fi
 
     if [[ -z "$MESSAGE" ]]; then
-        echo "[cc-bridge] ⚠️  消息为空"
+        echo "[claude-code-bridge] ⚠️  消息为空"
         return 1
     fi
 
@@ -200,7 +223,7 @@ do_send() {
 do_approve() {
     # 处理 CC 的 TUI 审批菜单（上下选择 + Enter 确认）
     if ! is_running; then
-        echo "[cc-bridge] ❌ 没有活跃的 CC 会话"
+        echo "[claude-code-bridge] ❌ 没有活跃的 CC 会话"
         return 1
     fi
 
@@ -232,7 +255,7 @@ do_approve() {
             tmux send-keys -t "$TMUX_NAME" Escape
             ;;
         *)
-            echo "[cc-bridge] ⚠️  未知审批选项: $choice"
+            echo "[claude-code-bridge] ⚠️  未知审批选项: $choice"
             echo "可用: 1/y/yes/是, 2, 3/n/no/否, esc/cancel/取消"
             return 1
             ;;
@@ -251,14 +274,33 @@ do_stop() {
         # 如果还在就强杀
         tmux kill-session -t "$TMUX_NAME" 2>/dev/null || true
     fi
-    rm -f "$LOG_FILE" "$OFFSET_FILE"
+
+    # 沙盒清理：安全删除临时目录
+    if [[ -f "$SANDBOX_FLAG" ]]; then
+        local sandbox_dir
+        sandbox_dir=$(cat "$SANDBOX_FLAG")
+        if [[ "$sandbox_dir" == /tmp/cc-sandbox-* && -d "$sandbox_dir" ]]; then
+            rm -rf "$sandbox_dir"
+            echo "🧹 沙盒已清理: $sandbox_dir"
+        fi
+    fi
+
+    rm -f "$LOG_FILE" "$OFFSET_FILE" "$WORKDIR_FILE" "$SANDBOX_FLAG"
     echo "✅ Claude Code 会话已关闭"
 }
 
 do_restart() {
-    echo "[cc-bridge] 🔄 正在重启..."
+    # 保存旧的工作目录，以便重启时复用
+    local old_workdir=""
+    [[ -f "$WORKDIR_FILE" ]] && old_workdir=$(cat "$WORKDIR_FILE")
+
     do_stop
     sleep 1
+
+    # 重启时：如果传了新 workdir 用新的，否则复用旧的（旧的也没有则沙盒）
+    if [[ -z "$MESSAGE" && -n "$old_workdir" && -d "$old_workdir" ]]; then
+        MESSAGE="$old_workdir"
+    fi
     do_start
 }
 
@@ -273,6 +315,14 @@ do_status() {
         echo "   滚动缓冲: ${scroll_lines} 行"
         echo "   日志大小: ${log_size} bytes"
 
+        # 显示工作目录信息
+        if [[ -f "$WORKDIR_FILE" ]]; then
+            echo "   📁 工作目录: $(cat "$WORKDIR_FILE")"
+        fi
+        if [[ -f "$SANDBOX_FLAG" ]]; then
+            echo "   🧪 沙盒模式"
+        fi
+
         # 检测 CC 是否在等待审批
         local screen
         screen=$(capture_full | tail -20)
@@ -285,9 +335,18 @@ do_status() {
     fi
 }
 
+do_workdir() {
+    if [[ -f "$WORKDIR_FILE" ]]; then
+        echo "📁 $(cat "$WORKDIR_FILE")"
+        [[ -f "$SANDBOX_FLAG" ]] && echo "🧪 沙盒模式"
+    else
+        echo "⭕ 没有活跃会话"
+    fi
+}
+
 do_peek() {
     if ! is_running; then
-        echo "[cc-bridge] 没有活跃会话"
+        echo "[claude-code-bridge] 没有活跃会话"
         return 1
     fi
     capture_full | tail -50
@@ -295,7 +354,7 @@ do_peek() {
 
 do_history() {
     if ! is_running; then
-        echo "[cc-bridge] 没有活跃会话"
+        echo "[claude-code-bridge] 没有活跃会话"
         return 1
     fi
     local lines="${MESSAGE:-100}"
@@ -304,20 +363,20 @@ do_history() {
 
 do_interrupt() {
     if ! is_running; then
-        echo "[cc-bridge] 没有活跃会话"
+        echo "[claude-code-bridge] 没有活跃会话"
         return 1
     fi
     save_current_offset
     tmux send-keys -t "$TMUX_NAME" C-c
     sleep 1
     read_new_output
-    echo "[cc-bridge] ⚡ 已发送中断信号 (Ctrl+C)"
+    echo "[claude-code-bridge] ⚡ 已发送中断信号 (Ctrl+C)"
 }
 
 do_key() {
     # 发送特殊按键：Escape, Up, Down, Tab, Enter, Space 等
     if ! is_running; then
-        echo "[cc-bridge] 没有活跃会话"
+        echo "[claude-code-bridge] 没有活跃会话"
         return 1
     fi
 
@@ -350,7 +409,7 @@ do_key() {
         alt+m|Alt+M)            tmux send-keys -t "$TMUX_NAME" M-m ;;
         esc+esc|Esc+Esc)        tmux send-keys -t "$TMUX_NAME" Escape; sleep 0.2; tmux send-keys -t "$TMUX_NAME" Escape ;;
         *)
-            echo "[cc-bridge] ⚠️  未知按键: $key"
+            echo "[claude-code-bridge] ⚠️  未知按键: $key"
             echo "可用: esc, up, down, left, right, tab, shift+tab, enter, space"
             echo "      ctrl+c/d/b/f/g/l/o/r/s/t/e, alt+p/t/m, esc+esc"
             return 1
@@ -370,13 +429,14 @@ case "$ACTION" in
     stop)       do_stop      ;;
     restart)    do_restart   ;;
     status)     do_status    ;;
+    workdir)    do_workdir   ;;
     peek)       do_peek      ;;
     history)    do_history   ;;
     interrupt)  do_interrupt ;;
     key)        do_key       ;;
     *)
-        echo "[cc-bridge] ❌ 未知 action: $ACTION"
-        echo "可用: start | send | approve | stop | restart | status | peek | history | interrupt | key"
+        echo "[claude-code-bridge] ❌ 未知 action: $ACTION"
+        echo "可用: start | send | approve | stop | restart | status | workdir | peek | history | interrupt | key"
         exit 1
         ;;
 esac

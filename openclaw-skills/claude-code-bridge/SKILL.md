@@ -4,16 +4,17 @@ description: >
   Bridges OpenClaw (QQ, Telegram, WeChat, and other messaging channels) to a
   persistent Claude Code CLI session running in a background tmux process.
   Enables starting, stopping, restarting, and monitoring Claude Code sessions
-  directly from any chat interface. Automatically detects session state on
-  every message, routes user input to the active Claude Code session, and
-  handles tool-approval prompts so the user can approve or deny Claude Code
-  actions without leaving their chat app. Ideal for developers who want to
-  control Claude Code from a mobile device or a group chat.
+  directly from any chat interface. Supports specifying a working directory or
+  launching in sandbox mode (temp directory, auto-cleanup on stop). Automatically
+  detects session state on every message, routes user input to the active Claude
+  Code session, and handles tool-approval prompts so the user can approve or deny
+  Claude Code actions without leaving their chat app.
   Trigger phrases: "start claude code", "open claude code", "cc status",
   "stop claude code", "restart cc", "启动claude code", "开启claude code",
-  "连接cc", "cc状态", "关闭cc", "退出cc", "重启cc", "/cc start", "/cc stop",
-  "/cc restart", "/cc status".
-version: 0.2.1
+  "启动cc", "开启cc", "连接cc", "cc状态", "关闭cc", "退出cc", "重启cc",
+  "在...打开cc", "沙盒打开cc", "沙盒模式启动cc",
+  "/cc start", "/cc stop", "/cc restart", "/cc status".
+version: 0.3.0
 ---
 
 # Claude Code Bridge
@@ -27,7 +28,7 @@ Claude Code responds as if they were typing in a real terminal.
 **At the start of EVERY incoming message**, determine session state:
 
 ```bash
-~/.openclaw/workspace/skills/cc-bridge/scripts/cc-bridge.sh "<SESSION_ID>" status
+~/.openclaw/workspace/skills/claude-code-bridge/scripts/claude-code-bridge.sh "<SESSION_ID>" status
 ```
 
 - `✅ Claude Code 会话运行中` → **CC mode active**, route message to CC
@@ -42,10 +43,15 @@ Construct `<SESSION_ID>` as `<channel>_<chat_id>` using only `[a-zA-Z0-9_]`.
 Every incoming message:
   1. Run status check
   2. Is it a CC control command?
-       "启动cc"    → start
+       ──── Startup (with workdir) ────
+       "在 <path> 打开cc"        → start <path>
+       "沙盒打开cc" / "沙盒模式" → start --sandbox
+       "启动cc"（no path）       → ASK workdir first (see Startup Flow below)
+       ──── Other controls ────
        "关闭cc"    → stop
        "重启cc"    → restart
        "cc状态"    → status
+       "cc在哪" / "cc目录" → workdir
        "/cc peek"  → peek
        "/cc history [N]" → history
   3. Is CC in approval-waiting state?
@@ -55,23 +61,41 @@ Every incoming message:
        NO  → respond normally as OpenClaw agent
 ```
 
+## Startup Flow — Working Directory
+
+When the user wants to start Claude Code **without specifying a directory**:
+
+1. Ask briefly: `"工作目录放哪？发路径就在那里打开，不指定就用临时沙盒。"`
+2. Parse the reply:
+   - User sends a path (e.g. `~/projects/paper`) → `start ~/projects/paper`
+   - User says "沙盒" / "随便" / "临时" / doesn't specify → `start --sandbox`
+
+When the user specifies a directory **in the startup command itself**:
+- "在 ~/Documents/Code 打开cc" → extract the path → `start ~/Documents/Code`
+- "沙盒打开cc" / "沙盒模式启动cc" → `start --sandbox`
+
+**Do NOT ask if the path is already provided in the command.**
+
 ## Executing Actions
 
 ```bash
-SCRIPT="$HOME/.openclaw/workspace/skills/cc-bridge/scripts/cc-bridge.sh"
+SCRIPT="$HOME/.openclaw/workspace/skills/claude-code-bridge/scripts/claude-code-bridge.sh"
 
-"$SCRIPT" "<ID>" start                    # 启动
-"$SCRIPT" "<ID>" send '<message>'         # 发送（90s 超时）
-"$SCRIPT" "<ID>" send '<message>' --long  # 长任务（5min 超时）
-"$SCRIPT" "<ID>" approve 1               # 审批：选 Yes
-"$SCRIPT" "<ID>" approve 2               # 审批：选 Allow always
-"$SCRIPT" "<ID>" approve 3               # 审批：选 No
-"$SCRIPT" "<ID>" approve esc             # 审批：取消
-"$SCRIPT" "<ID>" stop                    # 停止
-"$SCRIPT" "<ID>" restart                 # 重启
-"$SCRIPT" "<ID>" status                  # 状态
-"$SCRIPT" "<ID>" peek                    # 原始终端画面
-"$SCRIPT" "<ID>" history 200             # 最近 200 行历史
+"$SCRIPT" "<ID>" start '/path/to/workdir'   # 在指定目录启动
+"$SCRIPT" "<ID>" start --sandbox             # 沙盒模式启动
+"$SCRIPT" "<ID>" send '<message>'            # 发送（90s 超时）
+"$SCRIPT" "<ID>" send '<message>' --long     # 长任务（5min 超时）
+"$SCRIPT" "<ID>" approve 1                   # 审批：选 Yes
+"$SCRIPT" "<ID>" approve 2                   # 审批：选 Allow always
+"$SCRIPT" "<ID>" approve 3                   # 审批：选 No
+"$SCRIPT" "<ID>" approve esc                 # 审批：取消
+"$SCRIPT" "<ID>" stop                        # 停止（沙盒自动清理）
+"$SCRIPT" "<ID>" restart                     # 重启（保留原工作目录）
+"$SCRIPT" "<ID>" restart '/new/path'         # 重启到新目录
+"$SCRIPT" "<ID>" status                      # 状态（含工作目录信息）
+"$SCRIPT" "<ID>" workdir                     # 查询当前工作目录
+"$SCRIPT" "<ID>" peek                        # 原始终端画面
+"$SCRIPT" "<ID>" history 200                 # 最近 200 行历史
 ```
 
 **IMPORTANT — message quoting**: Use `tmux send-keys -l` (literal mode) so
@@ -87,8 +111,8 @@ CC's own slash commands work by sending them via `send`:
 | `/plan` | `send '/plan'` |
 | `/model sonnet` | `send '/model sonnet'` |
 | `/compact` | `send '/compact'` |
-| `/help` | `send '/help'` |
 | `/cost` | `send '/cost'` |
+| `/help` | `send '/help'` |
 | `/clear` | `send '/clear'` |
 | `/diff` | `send '/diff'` |
 | `/fast` | `send '/fast'` |
@@ -136,17 +160,23 @@ For tasks that take a long time (refactoring, writing large codebases):
 1. Detect intent: if the user's message implies a large task (e.g. "重构整个项目",
    "帮我写一个完整的 XXX"), use `--long` flag (5-minute timeout)
 2. If the output is empty after timeout, use `peek` to check CC's current state
-3. If CC is still working, inform the user: `⏳ CC 仍在处理中，稍后我再检查`
+3. If CC is still working, inform the user: `CC 仍在处理中，稍后再查`
 4. Then use `peek` or `history` to get progress updates
 
-## Formatting Replies
+## Formatting — Seamless Mode
 
-1. Prefix CC output with `🤖 **CC →**`
-2. Keep code blocks, file paths, and tool output intact
-3. If output is empty: reply `⏳ CC 正在处理中...` then try `peek` after 3s
-4. If output >3000 chars: show the last 2000 chars, note earlier output available
-   via `/cc history`
-5. If CC is waiting for approval: clearly show the options to the user
+**Goal: make the user feel like they're talking to Claude Code directly.**
+
+When CC session is active:
+- **Do NOT prefix every reply with `🤖 CC →`** — just relay CC's output directly
+- Only add brief status markers for:
+  · Session startup / shutdown
+  · Approval prompts (show the options)
+  · Errors / timeouts
+- CC's code blocks, file paths, tool output → relay as-is, no reformatting
+- Empty output → brief `CC 处理中...` then try `peek` after 3s
+- Output >3000 chars → show last 2000 chars, note `/cc history` for full output
+- Approval prompt → show options directly, minimal decoration
 
 ## Error Handling
 
@@ -160,5 +190,5 @@ For tasks that take a long time (refactoring, writing large codebases):
 
 ## Additional Resources
 
-- **`scripts/cc-bridge.sh`** — Full session management (start/send/approve/stop/restart/status/peek/history)
+- **`scripts/claude-code-bridge.sh`** — Full session management (start/send/approve/stop/restart/status/workdir/peek/history)
 - **`references/usage.md`** — User-facing help text and example conversations
