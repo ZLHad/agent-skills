@@ -51,6 +51,34 @@ cp -r /tmp/agent-skills/openclaw-skills/claude-code-bridge ~/.openclaw/workspace
 
 ---
 
+## OpenClaw Plugins
+
+### fs-guard
+
+Filesystem protection plugin that prevents AI agents from accidentally deleting, overwriting, or destroying critical files on your local machine.
+
+```
+Agent: write("~/.ssh/id_rsa", "")
+  → fs-guard: BLOCKED — "Please ask the user for confirmation"
+  → Agent: "Do you want me to modify ~/.ssh/id_rsa?"
+```
+
+**What it protects:**
+- System paths (`/etc`, `/usr`, `/bin`, `/System`, `/Library`) — always blocked
+- User configs (`~/.ssh`, `~/.gnupg`, `~/.zshrc`, `~/.claude`) — requires confirmation
+- Dangerous commands (`rm -rf`, `dd`, `mkfs`, `curl|bash`, `git push --force`) — blocked
+- Empty writes (clearing file content) — blocked
+- Custom paths you define — requires confirmation
+
+**Install:**
+```bash
+bash /tmp/agent-skills/openclaw-plugins/fs-guard/install.sh
+```
+
+[Full documentation →](openclaw-plugins/fs-guard/README.md)
+
+---
+
 ## Claude Code Skills
 
 ### IEEE Reference Manager
@@ -94,6 +122,8 @@ Additional skills are available as standalone packages and will be integrated in
 agent-skills/
 ├── openclaw-skills/
 │   └── claude-code-bridge/      # OpenClaw ↔ Claude Code tmux bridge
+├── openclaw-plugins/
+│   └── fs-guard/                # Filesystem protection plugin
 ├── claude-code-skills/
 │   └── ieee-reference-manager/  # IEEE reference validation & fixing
 └── README.md

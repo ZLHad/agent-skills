@@ -1,0 +1,29 @@
+{
+  "id": "fs-guard",
+  "name": "Filesystem Guard",
+  "description": "Protects critical files and directories from accidental destructive operations by AI agents. Blocks dangerous write/edit/exec operations and asks the agent to confirm with the user.",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "protectedPaths": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Additional paths to protect (glob patterns supported)"
+      },
+      "allowedWritePaths": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Paths where writes are always allowed without confirmation"
+      },
+      "blockEmptyWrites": {
+        "type": "boolean",
+        "default": true,
+        "description": "Block write operations that would empty a file"
+      },
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      }
+    }
+  }
+}
