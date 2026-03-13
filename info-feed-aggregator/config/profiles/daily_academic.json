@@ -1,0 +1,57 @@
+{
+  "profile_name": "daily_academic",
+  "description": "每日学术论文速报 — AIGC通信、可移动天线、LLM Agent",
+  "sources_override": ["arxiv", "semantic_scholar"],
+  "topics": [
+    {
+      "id": "aigc_communication",
+      "name": "AIGC + Communication",
+      "enabled": true,
+      "priority": 1,
+      "keywords": [
+        "AIGC communication",
+        "generative AI wireless",
+        "AI-generated content network"
+      ],
+      "categories": ["cs.AI", "cs.NI", "eess.SP"],
+      "time_range": "7d",
+      "max_items": 10
+    },
+    {
+      "id": "movable_antenna",
+      "name": "Movable Antenna",
+      "enabled": true,
+      "priority": 1,
+      "keywords": [
+        "movable antenna",
+        "fluid antenna",
+        "position optimization antenna"
+      ],
+      "categories": ["eess.SP", "cs.IT"],
+      "time_range": "7d",
+      "max_items": 10
+    },
+    {
+      "id": "llm_agents",
+      "name": "LLM Agents",
+      "enabled": true,
+      "priority": 2,
+      "keywords": [
+        "LLM agent",
+        "autonomous agent tool use",
+        "agentic AI"
+      ],
+      "categories": ["cs.AI", "cs.CL"],
+      "time_range": "7d",
+      "max_items": 10
+    }
+  ],
+  "report": {
+    "format": ["json", "markdown"],
+    "language": "zh",
+    "title": "每日学术论文速报",
+    "include_abstract": true,
+    "max_abstract_chars": 300,
+    "group_by": "topic"
+  }
+}

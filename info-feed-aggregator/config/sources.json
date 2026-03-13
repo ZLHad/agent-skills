@@ -1,0 +1,62 @@
+{
+  "version": "1.2",
+  "global": {
+    "language": "zh",
+    "max_total_items": 100,
+    "dedup_strategy": "doi_then_title",
+    "output_dir": "reports",
+    "http": {
+      "timeout_sec": 30,
+      "retry_max": 3,
+      "retry_base_sec": 2,
+      "min_interval_sec": 1
+    }
+  },
+
+  "sources": {
+    "arxiv": {
+      "enabled": true,
+      "base_url": "http://export.arxiv.org/api/query",
+      "max_results_per_query": 30,
+      "sort_by": "submittedDate",
+      "sort_order": "descending"
+    },
+    "semantic_scholar": {
+      "enabled": true,
+      "base_url": "https://api.semanticscholar.org/graph/v1",
+      "api_key": "",
+      "fields": "title,abstract,authors,year,citationCount,tldr,url,externalIds,publicationDate,venue",
+      "max_results_per_query": 30
+    },
+    "ieee": {
+      "enabled": true,
+      "method": "web",
+      "max_results_per_query": 50,
+      "_comment": "method: 'web' = 直接搜索 ieeexplore.ieee.org (无需 API Key); 'api' = 官方 API (需配 api_key)",
+      "api_key": ""
+    },
+    "crossref": {
+      "enabled": false,
+      "base_url": "https://api.crossref.org/works",
+      "mailto": "",
+      "max_results_per_query": 20
+    },
+    "rsshub": {
+      "enabled": false,
+      "base_url": "https://rsshub.app",
+      "routes": []
+    },
+    "wechat": {
+      "enabled": true,
+      "method": "sogou",
+      "_comment": "method: 'sogou' = 搜狗微信搜索 (默认, 无需配置); 'rsshub' = RSSHub (需配 accounts); 'wewe-rss' = WeWeRSS",
+      "rsshub_base_url": "https://rsshub.app",
+      "accounts": []
+    },
+    "xiaohongshu": {
+      "enabled": false,
+      "method": "web_search",
+      "_comment": "暂不可用：搜索引擎对小红书内容索引有限。后续接入 RSSHub 或原生 API 后启用"
+    }
+  }
+}

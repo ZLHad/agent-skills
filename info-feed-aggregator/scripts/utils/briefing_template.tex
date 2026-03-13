@@ -1,0 +1,131 @@
+\documentclass[$if(fontsize)$$fontsize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$]{article}
+
+% ---- Encoding & Fonts ----
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setCJKmainfont{PingFang SC}
+\setCJKsansfont{PingFang SC}
+\setCJKmonofont{PingFang SC}
+\setmainfont{PingFang SC}
+\setsansfont{PingFang SC}
+\setmonofont{Menlo}
+
+% ---- Page layout ----
+\usepackage[a4paper, margin=2.4cm, top=2.8cm, bottom=2.2cm]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\footnotesize\color{gray}学术前沿速报}
+\fancyfoot[C]{\footnotesize\color{gray}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\footnotesize\color{gray}\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ---- Colors ----
+\usepackage{xcolor}
+\definecolor{navyblue}{HTML}{0f3460}
+\definecolor{darkblue}{HTML}{16213e}
+\definecolor{accentred}{HTML}{e94560}
+\definecolor{lightgray}{HTML}{f5f5f5}
+\definecolor{linkblue}{HTML}{0f3460}
+
+% ---- Headings ----
+\usepackage{titlesec}
+\titleformat{\section}
+  {\Large\bfseries\color{darkblue}}
+  {\thesection}{0em}{}
+  [\vspace{-0.6em}{\color{navyblue}\hrule height 2.5pt}\vspace{0.2em}]
+\titleformat{\subsection}
+  {\large\bfseries\color{navyblue}}
+  {\thesubsection}{0em}
+  {\hspace{0pt}\textcolor{accentred}{\vrule width 4pt}\hspace{8pt}}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darkblue}}
+  {\thesubsubsection}{0em}{}
+\titlespacing*{\section}{0pt}{1.5em}{0.8em}
+\titlespacing*{\subsection}{0pt}{1.2em}{0.5em}
+\titlespacing*{\subsubsection}{0pt}{0.8em}{0.3em}
+
+% remove section numbering
+\setcounter{secnumdepth}{0}
+
+% ---- Line spacing ----
+\usepackage{setspace}
+\setstretch{$if(linestretch)$$linestretch$$else$1.5$endif$}
+
+% ---- Paragraph ----
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+% ---- Links ----
+\usepackage[breaklinks=true,unicode]{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkblue,
+  urlcolor=linkblue,
+  citecolor=linkblue,
+  pdfborder={0 0 0},
+}
+\urlstyle{same}
+
+% ---- Lists ----
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.5em, itemsep=0.2em, parsep=0.1em}
+\setlist[enumerate]{leftmargin=1.5em, itemsep=0.2em, parsep=0.1em}
+
+% ---- Blockquote ----
+\usepackage{mdframed}
+\renewenvironment{quote}{%
+  \begin{mdframed}[
+    linewidth=3pt,
+    linecolor=accentred,
+    backgroundcolor=lightgray,
+    innerleftmargin=12pt,
+    innerrightmargin=12pt,
+    innertopmargin=8pt,
+    innerbottommargin=8pt,
+    leftmargin=0pt,
+    rightmargin=0pt,
+    skipabove=8pt,
+    skipbelow=8pt,
+  ]
+  \small\color{black!80}
+}{%
+  \end{mdframed}
+}
+
+% ---- Code/badge styling ----
+\usepackage{listings}
+\lstset{
+  basicstyle=\small\ttfamily\color{navyblue},
+  backgroundcolor=\color{blue!5},
+  frame=single,
+  framerule=0pt,
+  rulecolor=\color{blue!10},
+  breaklines=true,
+  columns=fullflexible,
+}
+
+% ---- Horizontal rule (pandoc uses \rule for <hr>) ----
+\usepackage{booktabs}
+
+% ---- Graphics (for potential images) ----
+\usepackage{graphicx}
+
+% ---- Tight list for pandoc ----
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% ---- Tables ----
+\usepackage{longtable}
+\usepackage{array}
+
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+
+\begin{document}
+
+$body$
+
+\end{document}
