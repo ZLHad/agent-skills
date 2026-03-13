@@ -3,141 +3,115 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/ZLHad/agent-skills?style=social)](https://github.com/ZLHad/agent-skills/stargazers)
 
-A collection of ready-to-use agent skills for [OpenClaw](https://github.com/ZLHad/openclaw) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+面向 [OpenClaw](https://github.com/nicepkg/openclaw) 和 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 的即插即用 Agent 技能包合集。
 
-> **What are Agent Skills?** Modular, plug-and-play capability packs that extend AI agents with domain-specific knowledge and workflows — no API keys, no configuration, just drop in and go.
+> **什么是 Agent Skill？** 模块化的能力扩展包，为 AI 代理注入特定领域的知识和工作流。无需配置 API Key，放入目录即可使用。
 
-## Quick Install
+---
+
+## 快速安装
 
 ```bash
-# Clone the repo
+# 克隆仓库
 git clone --depth 1 https://github.com/ZLHad/agent-skills /tmp/agent-skills
 
-# Install an OpenClaw skill
+# 安装 OpenClaw Skill
 cp -r /tmp/agent-skills/openclaw-skills/<skill-name> ~/.openclaw/workspace/skills/
 
-# Install a Claude Code skill
+# 安装 Claude Code Skill
 cp -r /tmp/agent-skills/claude-code-skills/<skill-name> ~/.claude/skills/
+
+# 安装 OpenClaw Plugin（需要额外配置，见各插件 README）
+bash /tmp/agent-skills/openclaw-plugins/<plugin-name>/install.sh
 ```
+
+---
 
 ## OpenClaw Skills
 
-### Claude Code Bridge
+通过 Telegram / QQ / 微信等聊天渠道远程调用的 Agent 技能。
 
-Operate a **real, interactive Claude Code terminal session** remotely through any chat channel — QQ, Telegram, Discord, etc. Not a simple API wrapper — it's the full Claude Code CLI experience via tmux bridging.
-
-```
-Your Phone (QQ / Telegram / ...)
-     │
-     ▼
-  OpenClaw Agent ──► Claude Code Bridge ──► Claude Code CLI (tmux)
-     │                                           │
-     └───────────── response ◄───────────────────┘
-```
-
-**Highlights:**
-- Full Claude Code feature coverage: code editing, file I/O, git, slash commands, tool approval
-- Persistent sessions — closing your chat app won't kill the session
-- Sandbox mode — disposable temp directory, auto-cleanup on stop
-- Custom working directory support
-- Multi-session — each chat channel gets its own independent session
-
-**Install:**
-```bash
-cp -r /tmp/agent-skills/openclaw-skills/claude-code-bridge ~/.openclaw/workspace/skills/
-```
-
-[Full documentation →](openclaw-skills/claude-code-bridge/README.md)
+| Skill | 说明 | 安装 |
+|-------|------|------|
+| **[claude-code-bridge](openclaw-skills/claude-code-bridge/)** | 通过聊天渠道远程操控完整的 Claude Code CLI 会话（tmux 桥接） | `cp -r ... ~/.openclaw/workspace/skills/` |
+| **[info-feed-aggregator](openclaw-skills/info-feed-aggregator/)** | 多源学术信息聚合（arXiv、IEEE Xplore、Semantic Scholar、小红书等） | `cp -r ... ~/.openclaw/workspace/skills/` |
 
 ---
 
 ## OpenClaw Plugins
 
-### fs-guard
+OpenClaw 扩展插件，通过 `before_tool_call` 钩子增强代理行为。
 
-Filesystem protection plugin that prevents AI agents from accidentally deleting, overwriting, or destroying critical files on your local machine.
+| Plugin | 说明 | 安装 |
+|--------|------|------|
+| **[fs-guard](openclaw-plugins/fs-guard/)** | 文件系统保护 — 阻止 AI 代理误删/覆盖关键文件，拦截危险命令 | `bash install.sh` |
 
 ```
 Agent: write("~/.ssh/id_rsa", "")
-  → fs-guard: BLOCKED — "Please ask the user for confirmation"
-  → Agent: "Do you want me to modify ~/.ssh/id_rsa?"
+  -> fs-guard: BLOCKED
+  -> Agent: "需要修改 ~/.ssh/id_rsa，请确认是否继续？"
 ```
-
-**What it protects:**
-- System paths (`/etc`, `/usr`, `/bin`, `/System`, `/Library`) — always blocked
-- User configs (`~/.ssh`, `~/.gnupg`, `~/.zshrc`, `~/.claude`) — requires confirmation
-- Dangerous commands (`rm -rf`, `dd`, `mkfs`, `curl|bash`, `git push --force`) — blocked
-- Empty writes (clearing file content) — blocked
-- Custom paths you define — requires confirmation
-
-**Install:**
-```bash
-bash /tmp/agent-skills/openclaw-plugins/fs-guard/install.sh
-```
-
-[Full documentation →](openclaw-plugins/fs-guard/README.md)
 
 ---
 
 ## Claude Code Skills
 
-### IEEE Reference Manager
+直接在 Claude Code 中使用的专业技能。
 
-Full-pipeline IEEE Trans reference management assistant for academic papers. Automates the tedious work of checking and fixing references in LaTeX manuscripts.
+### 学术论文工具链
 
-**What it does:**
-- BibTeX format validation & auto-fix (missing fields, duplicate entries, key conflicts)
-- Journal name standardization using IEEE official macros (`IEEE_J_WCOM`, etc.)
-- DOI / metadata online verification via CrossRef & IEEE Xplore
-- Early Access article detection and format correction
-- Author count compliance (IEEE ≤6 full list, ≥7 use et al.)
-- Cross-reference audit between `.tex` and `.bib` files
-- Consecutive `\cite{}` merge suggestions
+| Skill | 说明 |
+|-------|------|
+| **[ieee-paper-revision](claude-code-skills/ieee-paper-revision/)** | IEEE 期刊论文修改全流程（审稿意见提取 → 修改计划 → 蓝标修改 → 回复信） |
+| **[ieee-reference-manager](claude-code-skills/ieee-reference-manager/)** | IEEE 参考文献管理（BibTeX 校验、期刊名标准化、DOI 验证、重复检测） |
+| **[zotero-citation](claude-code-skills/zotero-citation/)** | Zotero 文献引用（自动匹配引用位置，生成规范 Reference） |
 
-**Install:**
-```bash
-cp -r /tmp/agent-skills/claude-code-skills/ieee-reference-manager ~/.claude/skills/
-```
+### 知识管理
+
+| Skill | 说明 |
+|-------|------|
+| **[conversation-knowledge-extractor](claude-code-skills/conversation-knowledge-extractor/)** | 对话知识提取（从聊天中提取方法论、写作偏好、常见错误等） |
+| **[knowledge-base-manager](claude-code-skills/knowledge-base-manager/)** | 知识库管理（扫描/分析/整合知识文档，生成索引和进步报告） |
+
+### 科研协作
+
+| Skill | 说明 |
+|-------|------|
+| **[comms-research-partner](claude-code-skills/comms-research-partner/)** | 科研伙伴 — 论文讨论、头脑风暴、文献搜索、数学建模 |
 
 ---
 
-## More Skills (Coming Soon)
-
-Additional skills are available as standalone packages and will be integrated into this repo:
-
-| Skill | Description |
-|-------|-------------|
-| **academic-polisher** | Academic paper polishing — converts mixed CN/EN drafts with LaTeX formulas into publication-ready English |
-| **ieee-paper-revision** | Complete IEEE journal revision workflow: comment extraction, revision planning, manuscript editing, response letter |
-| **review-planner** | Analyzes reviewer comments and generates a structured revision plan |
-| **zotero-citation** | Zotero integration — auto-match references from your Zotero library for manuscript citations |
-| **academic-figure-prompt** | Generates detailed prompts for creating research paper figures (architecture diagrams, system diagrams, etc.) |
-| **conversation-knowledge-extractor** | Extracts key knowledge, methodologies, and patterns from conversations into a structured knowledge base |
-| **knowledge-base-manager** | Scans, analyzes, and organizes knowledge base documents with indexing and progress tracking |
-| **comms-research-partner** | Research companion for brainstorming, literature discussion, and academic exchange |
-
-## Project Structure
+## 目录结构
 
 ```
 agent-skills/
-├── openclaw-skills/
-│   └── claude-code-bridge/      # OpenClaw ↔ Claude Code tmux bridge
-├── openclaw-plugins/
-│   └── fs-guard/                # Filesystem protection plugin
-├── claude-code-skills/
-│   └── ieee-reference-manager/  # IEEE reference validation & fixing
-└── README.md
+├── openclaw-skills/                  # OpenClaw Agent Skills
+│   ├── claude-code-bridge/           #   远程 Claude Code 操控
+│   └── info-feed-aggregator/         #   多源信息聚合
+│
+├── openclaw-plugins/                 # OpenClaw 扩展插件
+│   └── fs-guard/                     #   文件系统保护
+│
+├── claude-code-skills/               # Claude Code Skills
+│   ├── comms-research-partner/       #   科研伙伴
+│   ├── conversation-knowledge-extractor/  #   对话知识提取
+│   ├── ieee-paper-revision/          #   IEEE 论文修改
+│   ├── ieee-reference-manager/       #   参考文献管理
+│   ├── knowledge-base-manager/       #   知识库管理
+│   └── zotero-citation/              #   Zotero 引用
+│
+├── README.md
+├── LICENSE
+└── .gitignore
 ```
 
-## Contributing
+## 贡献
 
-Contributions welcome! Feel free to:
-- Submit new skills via Pull Request
-- Report issues or suggest improvements
-- Share your own skill ideas in [Discussions](https://github.com/ZLHad/agent-skills/discussions)
+欢迎贡献！你可以：
+- 通过 Pull Request 提交新 Skill
+- 在 [Issues](https://github.com/ZLHad/agent-skills/issues) 中反馈问题或建议
+- 在 [Discussions](https://github.com/ZLHad/agent-skills/discussions) 中分享想法
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
-Copyright (c) 2025 ZLHad. You are free to use, modify, and distribute this software for any purpose, commercial or non-commercial, with attribution.
+[MIT License](LICENSE) - Copyright (c) 2025 ZLHad

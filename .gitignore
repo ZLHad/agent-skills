@@ -3,3 +3,8 @@
 .claude/
 __pycache__/
 *.pyc
+
+# Excluded skills (keep local, not published)
+claude-code-skills/academic-figure-prompt/
+claude-code-skills/academic-polisher/
+claude-code-skills/review-planner/
