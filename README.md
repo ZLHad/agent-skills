@@ -62,7 +62,6 @@ Agent: write("~/.ssh/id_rsa", "")
 
 | Skill | 说明 |
 |-------|------|
-| **[ieee-paper-revision](claude-code-skills/ieee-paper-revision/)** | IEEE 期刊论文修改全流程（审稿意见提取 → 修改计划 → 蓝标修改 → 回复信） |
 | **[ieee-reference-manager](claude-code-skills/ieee-reference-manager/)** | IEEE 参考文献管理（BibTeX 校验、期刊名标准化、DOI 验证、重复检测） |
 | **[zotero-citation](claude-code-skills/zotero-citation/)** | Zotero 文献引用（自动匹配引用位置，生成规范 Reference） |
 
@@ -95,7 +94,6 @@ agent-skills/
 ├── claude-code-skills/               # Claude Code Skills
 │   ├── comms-research-partner/       #   科研伙伴
 │   ├── conversation-knowledge-extractor/  #   对话知识提取
-│   ├── ieee-paper-revision/          #   IEEE 论文修改
 │   ├── ieee-reference-manager/       #   参考文献管理
 │   ├── knowledge-base-manager/       #   知识库管理
 │   └── zotero-citation/              #   Zotero 引用
