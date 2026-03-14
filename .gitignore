@@ -6,9 +6,3 @@ __pycache__/
 
 # Runtime output
 claude-code-skills/literature-search/results/
-
-# Excluded skills (keep local, not published)
-claude-code-skills/academic-figure-prompt/
-claude-code-skills/academic-polisher/
-claude-code-skills/review-planner/
-claude-code-skills/ieee-paper-revision/
