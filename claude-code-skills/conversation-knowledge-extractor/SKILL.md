@@ -145,6 +145,17 @@ key_tags: [标签列表]
 - "构建知识库条目"
 - 或任何类似的表述
 
+## 参考文件
+
+### 提取模板
+- [学术写作类模板](references/academic-writing-template.md) - 学术写作对话的知识提取模板，含修改对比、写作偏好分析等
+- [学术探讨类模板](references/academic-discussion-template.md) - 学术探讨对话的知识提取模板，记录思考过程和论证逻辑
+- [技术任务类模板](references/technical-task-template.md) - 技术任务对话的知识提取模板，记录方法、工具、决策点
+- [通用对话类模板](references/general-conversation-template.md) - 通用对话的知识提取模板，按主题分段记录
+
+### 输出示例
+- [知识库文档输出示例](templates/output-example.md) - 完整的输出文件示例，含文件命名规范和格式参考
+
 ## 注意事项
 
 1. **完整性优先**：宁可详细也不要遗漏重要信息

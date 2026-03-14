@@ -157,6 +157,11 @@ BibTeX key 推荐格式：`首作者姓年份+关键词`，如 `zhao2019computat
 - 调用：`python nameTranslate.py`
 - 依赖：IEEEfull.bib 用于全名匹配
 
+## 参考文件
+
+- [IEEE 参考文献格式规范详细手册](references/ieee-reference-rules.md) - 各条目类型的必需字段、格式要求、IEEE 标准宏用法等完整规范
+- [参考文献辅助脚本核心逻辑](references/utility-scripts.md) - analyze_bib.py 和 nameTranslate.py 的核心逻辑提取，可直接调用或参考实现
+
 ## 注意事项
 
 1. **不修改 IEEEabrv.bib 和 IEEEfull.bib**——这些是 IEEE 官方标准宏文件

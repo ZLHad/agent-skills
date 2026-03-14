@@ -23,6 +23,15 @@ model: opus
 | arXiv | Atom API | 预印本，最新研究进展 |
 | Google Scholar | WebSearch 备用 | 补充搜索，覆盖面广 |
 
+## 参考文件
+
+详细参考资料按主题拆分到独立文件，按需查阅：
+
+- [IEEE 顶刊/顶会参考](references/ieee-venues.md) — 通信、CS/AI 领域推荐期刊与会议列表
+- [最终报告模版](references/report-templates.md) — 总览文件与子方向文件的输出格式模版
+- [使用案例](references/usage-examples.md) — 完整的端到端搜索案例演示
+- [搜索参数说明](references/search-params.md) — search.py 所有命令行参数的详细说明
+
 ## 工作流程
 
 ### 阶段 1：交互式需求确认（必须）
@@ -68,6 +77,8 @@ python3 scripts/search.py --keywords "keyword1" "keyword2" \
   --sort relevance \
   --output-dir results
 ```
+
+完整参数说明见 [搜索参数说明](references/search-params.md)。
 
 **多轮搜索策略：**
 
@@ -127,81 +138,7 @@ python3 scripts/search.py --finalize results/merged_papers.json \
   -o results
 ```
 
-输出多文件结构（总览 + 子方向独立文件）：
-
-```
-results/
-├── {timestamp}_00_overview.md          ← 总览：推荐表 + 子方向文件链接
-├── {timestamp}_01_AIGC_LLM_Inference.md   ← 子方向 A 完整论文详情
-├── {timestamp}_02_SAGIN_Resource.md        ← 子方向 B 完整论文详情
-├── ...
-├── {timestamp}_final_report.bib        ← 所有精选论文 BibTeX
-└── {timestamp}_final_report.json       ← 结构化 JSON
-```
-
-#### 总览文件模版（`_00_overview.md`）
-
-```markdown
-# Related Work Literature Survey Report
-
-**Date**: 2026-03-15
-**Topic**: Hierarchical AIGC Inference in SAGIN
-**Total Selected**: 35 papers
-**Sub-directions**: 6
-
----
-
-## Sub-direction Files
-
-- [A. AIGC/LLM Inference at the Edge]({timestamp}_01_AIGC_LLM_Inference.md) (8 papers)
-- [B. SAGIN Resource Management]({timestamp}_02_SAGIN_Resource.md) (6 papers)
-- ...
-
----
-
-## Overview: Recommended Papers by Sub-direction
-
-### [A. AIGC/LLM Inference at the Edge]({timestamp}_01_AIGC_LLM_Inference.md)
-
-| # | Paper | Venue | Year | Citations | Core Contribution |
-|---|-------|-------|------|-----------|-------------------|
-| 1 | [Beyond the Cloud: Edge Inference...](url) | IEEE TWC | 2025 | 45 | LLM边缘推理框架... |
-| 2 | [QoE-Aware Offloading for AIGC...](url) | IEEE TMC | 2025 | 8 | AIGC QoE优化... |
-
-### [B. SAGIN Resource Management]({timestamp}_02_SAGIN_Resource.md)
-...
-```
-
-#### 子方向文件模版（`_01_*.md`）
-
-```markdown
-# A. AIGC/LLM Inference at the Edge
-
-**Topic**: Hierarchical AIGC Inference in SAGIN
-**Papers in this sub-direction**: 8
-[← Back to Overview](.)
-
----
-
-#### 1. [Beyond the Cloud: Edge Inference for Generative LLMs](url)
-
-**Authors**: Author1, Author2, ...
-**Year**: 2025
-**Venue**: IEEE Transactions on Wireless Communications
-**Citations**: 45
-**DOI**: 10.1109/TWC.2024.3497923
-
-**Abstract**: [完整摘要，不截断]
-
-**TL;DR**: [如有]
-
-<details><summary>BibTeX</summary>
-
-bibtex
-@article{Author2025, ... }
-
-</details>
-```
+输出格式和模版详见 [最终报告模版](references/report-templates.md)。
 
 ### 阶段 4：与用户确认结果
 
@@ -212,46 +149,6 @@ bibtex
 3. 询问是否需要**调整分组方式**
 4. 确认最终结果后，可将 BibTeX 导出到用户论文项目目录
 
-## 搜索参数说明
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--keywords` | 搜索关键词（多个空格分隔） | 必填 |
-| `--sources` | 数据源列表 | ieee semantic_scholar arxiv |
-| `--max-results` | 每源每轮最大结果数 | 30 |
-| `--time-range` | 时间范围：1y/3y/5y/all | 3y |
-| `--sort` | 排序：relevance/date/citations | relevance |
-| `--output-dir` | 输出目录 | results |
-| `--output-format` | 输出格式：json/markdown/bibtex/all | all |
-| `--journals` | 限定期刊（逗号分隔） | 无（不限） |
-| `--min-citations` | 最低引用数 | 0 |
-
-## IEEE 顶刊/顶会参考
-
-### 通信领域 IEEE 顶刊
-- **IEEE JSAC** — J. Sel. Areas Commun.（综合最佳，影响因子最高）
-- **IEEE TWC** — Trans. Wireless Commun.（无线通信旗舰）
-- **IEEE TCOM** — Trans. Commun.（通信理论与系统）
-- **IEEE TSP** — Trans. Signal Process.（信号处理）
-- **IEEE TMC** — Trans. Mobile Comput.（移动计算）
-- **IEEE TCCN** — Trans. Cognitive Commun. Netw.
-- **IEEE TVT** — Trans. Veh. Technol.
-- **IEEE IoT-J** — Internet of Things J.
-- **IEEE WCL** — Wireless Commun. Lett.
-- **IEEE CL** — Commun. Lett.
-
-### 通信领域 IEEE 顶会
-- **IEEE GLOBECOM** — Global Commun. Conf.
-- **IEEE ICC** — Int. Conf. Commun.
-- **IEEE WCNC** — Wireless Commun. Netw. Conf.
-- **IEEE INFOCOM** — Int. Conf. Computer Commun.
-- **IEEE VTC** — Veh. Technol. Conf.
-
-### CS/AI 领域补充
-- **IEEE TPAMI** — Trans. Pattern Anal. Mach. Intell.
-- **IEEE TNNLS** — Trans. Neural Netw. Learn. Syst.
-- **NeurIPS, ICML, ICLR, AAAI** — AI 顶会
-
 ## 依赖安装
 
 ```bash
@@ -260,37 +157,11 @@ pip install requests feedparser
 
 ## 注意事项
 
-- IEEE Xplore 搜索使用网页 REST 端点，无需 API Key，但有速率限制，搜索间隔建议 ≥ 1 秒
+- IEEE Xplore 搜索使用网页 REST 端点，无需 API Key，但有速率限制，搜索间隔建议 >= 1 秒
 - Semantic Scholar API 免费层 1000 次/5min，一般够用
 - arXiv API 无需密钥，但建议控制请求频率
-- 多轮搜索时自动去重（基于 DOI → arXiv ID → 标题哈希）
+- 多轮搜索时自动去重（基于 DOI -> arXiv ID -> 标题哈希）
 - 如果某个源连接失败，会自动跳过并使用其他源
 - 搜索结果保存在 `results/` 目录，包含时间戳，不会覆盖历史记录
 - **Markdown 报告中的摘要保持完整**，不做截断，确保后续精读和综述撰写有完整信息
-
-## 使用案例
-
-### 案例：为 "SAGIN 中分层 AIGC 推理" 论文撰写 Related Work
-
-**用户需求**：论文涉及 AIGC 边缘推理、SAGIN 架构、语义压缩、UAV-LEO 计算卸载、双时间尺度优化、DRL 资源分配。需要 IEEE 顶刊近 3 年论文。
-
-**执行过程**：
-
-1. **分析论文主题**，拆解为 7 个搜索子方向
-2. **10 轮搜索**，每轮使用不同关键词组合：
-   - "AIGC" "edge inference"
-   - "generative AI" "mobile edge computing"
-   - "space-air-ground integrated network" "resource allocation"
-   - "semantic communication" "task-oriented"
-   - "UAV" "computation offloading" "edge computing"
-   - "two-timescale" "optimization" "resource allocation"
-   - "deep reinforcement learning" "resource allocation" "wireless network"
-   - "model caching" "edge computing"
-   - "LEO satellite" "edge computing" "task offloading"
-   - "large language model" "inference" "edge"
-3. **合并去重**：289 篇 → 286 篇（去重后）
-4. **筛选 IEEE 顶刊**：286 篇 → 135 篇（IEEE Trans/Journal + 顶会，2023+ 年）
-5. **按子方向分类**，为每个方向推荐 5-8 篇核心论文
-6. **生成最终报告**：总览推荐表 + 完整论文详情 + BibTeX
-
-**最终输出**：6 个子方向共约 35 篇精选论文，含完整摘要和 BibTeX，可直接用于撰写 Related Work。
+- IEEE 顶刊/顶会完整列表见 [IEEE 顶刊/顶会参考](references/ieee-venues.md)
