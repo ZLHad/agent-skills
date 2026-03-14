@@ -62,6 +62,7 @@ Agent: write("~/.ssh/id_rsa", "")
 
 | Skill | 说明 |
 |-------|------|
+| **[literature-search](claude-code-skills/literature-search/)** | 文献检索助手 — IEEE Xplore / Semantic Scholar / arXiv 多源搜索，多轮去重，BibTeX 导出，分方向最终报告 |
 | **[ieee-reference-manager](claude-code-skills/ieee-reference-manager/)** | IEEE 参考文献管理（BibTeX 校验、期刊名标准化、DOI 验证、重复检测） |
 | **[zotero-citation](claude-code-skills/zotero-citation/)** | Zotero 文献引用（自动匹配引用位置，生成规范 Reference） |
 
@@ -96,6 +97,7 @@ agent-skills/
 │   ├── conversation-knowledge-extractor/  #   对话知识提取
 │   ├── ieee-reference-manager/       #   参考文献管理
 │   ├── knowledge-base-manager/       #   知识库管理
+│   ├── literature-search/            #   文献检索助手
 │   └── zotero-citation/              #   Zotero 引用
 │
 ├── README.md
