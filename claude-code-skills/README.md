@@ -6,12 +6,8 @@
 
 | Skill | 说明 | 触发词 |
 |-------|------|--------|
-| [academic-polisher](academic-polisher/) | 学术论文润色，中英文混合/公式文本转规范学术英文 | `润色`、`polish`、`改写` |
-| [academic-figure-prompt](academic-figure-prompt/) | 生成科研插图的详细绘制 Prompt | `画论文图`、`生成绘图prompt`、`设计架构图` |
 | [literature-search](literature-search/) | 多数据源学术文献检索（IEEE Xplore / Semantic Scholar / arXiv） | `查文献`、`搜论文`、`literature search` |
-| [ieee-paper-revision](ieee-paper-revision/) | IEEE 期刊论文大修/小修全流程（审稿意见处理 + 回复信） | `修改论文`、`处理审稿意见`、`revision` |
 | [ieee-reference-manager](ieee-reference-manager/) | IEEE 参考文献格式校验、BibTeX 修复、DOI 验证 | `检查参考文献`、`修复引用格式` |
-| [review-planner](review-planner/) | 分析审稿意见并制定修改规划 | `审稿意见`、`修订要求` |
 | [zotero-citation](zotero-citation/) | 通过 Zotero 本地 API 匹配与分配参考文献 | `引用文献`、`从Zotero选文献` |
 | [comms-research-partner](comms-research-partner/) | 科研讨论伙伴（论文讨论、数学建模、头脑风暴） | `讨论论文`、`头脑风暴`、`帮我理解` |
 | [conversation-knowledge-extractor](conversation-knowledge-extractor/) | 从对话中提取知识点，生成可复用知识库文档 | `总结这次对话`、`提取知识点` |

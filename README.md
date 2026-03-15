@@ -79,10 +79,11 @@ Agent: write("~/.ssh/id_rsa", "")
 |-------|------|
 | **[comms-research-partner](claude-code-skills/comms-research-partner/)** | 科研伙伴 — 论文讨论、头脑风暴、文献搜索、数学建模 |
 
-### 开发工具
+### 实用工具
 
 | Skill | 说明 |
 |-------|------|
+| **[wechat-article-reader](claude-code-skills/wechat-article-reader/)** | 微信公众号文章抓取（Playwright 无头浏览器，伪装移动端绕过反爬） |
 | **[skill-auditor](claude-code-skills/skill-auditor/)** | Skill 质量审查（渐进式披露规范、行数、frontmatter、参考文件链接检查） |
 
 ---
@@ -104,7 +105,8 @@ agent-skills/
 │   ├── ieee-reference-manager/       #   参考文献管理
 │   ├── knowledge-base-manager/       #   知识库管理
 │   ├── literature-search/            #   文献检索助手
-│   ├── skill-auditor/               #   Skill 质量审查
+│   ├── skill-auditor/                #   Skill 质量审查
+│   ├── wechat-article-reader/        #   微信公众号文章抓取
 │   └── zotero-citation/              #   Zotero 引用
 │
 ├── README.md
