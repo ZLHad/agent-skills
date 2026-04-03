@@ -13,7 +13,7 @@ model: opus
 - 检测重复条目（相同 DOI / 相似标题 / 重复 key）
 - 检测缺失必要字段（author, title, year, journal/booktitle, pages, volume, number）
 - Early Access 文章识别与格式修正（删除占位 pages，添加 `note = {early access}`）
-- 作者数量合规检查（IEEE 规范：≤6 位全列，≥7 位用 et al.）
+- 作者数量合规检查（BibTeX author 字段必须列出所有作者，禁止使用 `and others` 省略）
 - BSTcontrol 配置检查与建议
 - 清理未引用的冗余条目
 
@@ -76,7 +76,7 @@ model: opus
 - 连续 \cite 合并检查
 - 期刊名宏检查
 - Early Access 识别
-- 作者数量 + BSTcontrol 检查
+- 作者数量检查：检测所有使用 `and others` 的条目，标记为**严重警告**，提示需要补全完整作者列表
 - 页码格式检查
 
 **步骤 5：输出报告**
@@ -110,9 +110,9 @@ model: opus
 1. **作者**：BibTeX 中使用全名（`Last, First Middle`），IEEEtran.bst 自动缩写为首字母
 2. **期刊名**：必须使用 IEEE 标准宏（IEEEabrv.bib 中定义），不要硬编码全名或缩写
 3. **作者数量**：
-   - ≤6 位：全部列出
-   - ≥7 位：列第 1 位 + *et al.*
-   - 通过 BSTcontrol 的 `ctluse_forced_etal`、`ctlmax_names_forced_et_al`、`ctlnames_show_etal` 控制
+   - BibTeX 的 `author` 字段中必须列出所有作者的完整姓名，**不允许使用 `and others` 省略**
+   - 作者截断由 BSTcontrol 的 `ctluse_forced_etal` 和 `ctlmax_names_forced_et_al` 自动控制，不在 bib 条目中手动处理
+   - 唯一例外：作者数量超过 30 位的论文（如大型 ML 团队论文），此时可列出前 10 位 + `and others`
 4. **Early Access 文章**：
    - 删除 `pages` 字段（`pages = {1--1}` 是 IEEE Xplore 占位符）
    - 添加 `note = {early access}`
@@ -140,7 +140,7 @@ BibTeX key 推荐格式：`首作者姓年份+关键词`，如 `zhao2019computat
 | Conference 用了 @article | `@article` + `booktitle` | 改为 `@inproceedings` |
 | 期刊名硬编码 | `journal = {IEEE Trans. Wireless Commun.}` | → `journal = IEEE_J_WCOM` |
 | 标题拼写错误 | "Computation Computational" | 核实原文实际标题 |
-| 作者过多未截断 | 7+ 作者全列 | BSTcontrol 启用 et al. |
+| 使用 `and others` 省略作者 | `author = {A and others}` | 补全所有作者完整姓名（≤30 位必须全列） |
 | 缺失必要字段 | 无 volume/number/pages | 通过 DOI 补全 |
 
 ## 辅助工具集成

@@ -281,6 +281,13 @@
 
 完整列表见 IEEEabrv.bib。
 
+> **⚠️ 易错宏名：**
+>
+> - `IEEE_J_SAC` ❌ → `IEEE_J_JSAC` ✅ — JSAC 是 "**J**ournal on Selected Areas in Commun."，不是 "Transactions"，宏名中的 J 不能省
+> - `IEEE_J_WCL` ❌ → `IEEE_J_WCOML` ✅ — IEEE Wireless Commun. Lett. 的宏名是 WCOML，不是直觉上的 WCL
+>
+> 录入新条目时，务必在 IEEEabrv.bib 中 grep 确认宏名存在，不要凭直觉拼写。
+
 ## 三、BSTcontrol 配置
 
 ```bibtex
