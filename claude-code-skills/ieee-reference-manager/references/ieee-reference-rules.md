@@ -39,11 +39,19 @@
   title   = {Paper Title},
   journal = IEEE_J_WCOM,
   year    = {2025},
-  note    = {early access},        % 关键标记
-  doi     = {10.1109/TWC.xxx}      % 必须保留
+  note    = {early access, doi: 10.1109/TWC.2025.XXXXXXX}
   % 不写 volume, number, pages
+  % 不写独立 doi 字段（IEEEtran.bst 默认不渲染 doi 字段，DOI 需写入 note）
 }
 ```
+
+> **关键规则**：IEEEtran.bst 默认不显示独立的 `doi` 字段。若要让 Early Access 条目在 PDF 中显示 DOI（IEEE 推荐做法），必须将 DOI 写入 `note` 字段，并**删除**独立的 `doi = {...}`。否则，保留独立 doi 字段既不渲染也无害，但不会显示；若同时写两处会导致 note 中 DOI 重复显示。
+>
+> **渲染效果**：`..., 2025, early access, doi: 10.1109/TWC.2025.XXXXXXX.`
+>
+> **精确识别规则**：
+> - `pages = {1--1}` 精确匹配（正则 `^pages\s*=\s*\{1--1\}\s*,?$`，避免 `{1--16}` 被误判）
+> - 或：无 `volume` AND 无 `number` AND 有 `journal` AND 有 DOI → 很可能 Early Access
 
 ### @book（书籍）
 ```bibtex
@@ -281,12 +289,20 @@
 
 完整列表见 IEEEabrv.bib。
 
-> **⚠️ 易错宏名：**
+> **⚠️ 易错宏名速查表**（已核对 IEEEabrv.bib）：
 >
-> - `IEEE_J_SAC` ❌ → `IEEE_J_JSAC` ✅ — JSAC 是 "**J**ournal on Selected Areas in Commun."，不是 "Transactions"，宏名中的 J 不能省
-> - `IEEE_J_WCL` ❌ → `IEEE_J_WCOML` ✅ — IEEE Wireless Commun. Lett. 的宏名是 WCOML，不是直觉上的 WCL
+> 尾缀带 O/T/L 的命名最容易写错，AI 和人类都会凭直觉少写一个字母。**错误的宏名会被 BibTeX 静默忽略**（journal 字段变空），不报错但参考文献列表中期刊名会缺失。
 >
-> 录入新条目时，务必在 IEEEabrv.bib 中 grep 确认宏名存在，不要凭直觉拼写。
+> | 常见错误 ❌ | 正确宏名 ✅ | 期刊全称 |
+> |----------|----------|---------|
+> | `IEEE_J_SAC` | `IEEE_J_JSAC` | IEEE J. Sel. Areas Commun.（Journal，不是 Trans.）|
+> | `IEEE_J_WCL` | `IEEE_J_WCOML` | IEEE Wireless Commun. Lett. |
+> | `IEEE_O_CST` | `IEEE_O_CSTO` | IEEE Commun. Surveys Tuts. |
+> | `IEEE_M_SPEC` | `IEEE_M_SPECT` | IEEE Spectr. |
+> | `IEEE_J_II` | `IEEE_J_IINF` | IEEE Trans. Ind. Informat. |
+> | `IEEE_J_SVC` | `IEEE_J_SC` | IEEE Trans. Serv. Comput.（勿与 `IEEE_J_SUSC` 混淆，后者是 Sustain. Comput.）|
+>
+> **录入新条目前必须在 IEEEabrv.bib 中 grep 确认宏名**，不要凭直觉拼写。
 
 ## 三、BSTcontrol 配置
 

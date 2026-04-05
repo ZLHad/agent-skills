@@ -12,7 +12,7 @@ model: opus
 ### 1. BibTeX 文件审查与修复
 - 检测重复条目（相同 DOI / 相似标题 / 重复 key）
 - 检测缺失必要字段（author, title, year, journal/booktitle, pages, volume, number）
-- Early Access 文章识别与格式修正（删除占位 pages，添加 `note = {early access}`）
+- Early Access 文章识别与格式修正（删除占位 `pages = {1--1}`，将 DOI 合并进 note：`note = {early access, doi: 10.1109/XXX}`，并删除独立 `doi` 字段，避免 PDF 渲染重复）
 - 作者数量合规检查（BibTeX author 字段必须列出所有作者，禁止使用 `and others` 省略）
 - BSTcontrol 配置检查与建议
 - 清理未引用的冗余条目
@@ -43,7 +43,22 @@ model: opus
 - 检查 `copyright`、`langid` 等非必要字段（可建议清理）
 - 标题大小写保护检查（缩写词、专有名词是否用 `{{}}` 包裹）
 
-### 6. 扩展条目类型支持
+### 6. Zotero/Crossref 污染字段清理
+- 默认删除 12 类污染字段：`abstract`, `url`, `urldate`, `copyright`, `langid`, `language`, `annote`, `shorttitle`, `issn`, `keywords`, `file`, `publisher`（`@misc`/`@electronic` 除外）
+- 非 Early Access 条目的 `note` 字段若含中文/备注，提示清理
+- HTML 实体转义：`&amp;` → `\&`，`–`（em/en-dash）→ `--`（仅 pages 字段）
+- Unicode 污染扫描：检测中文字符 `[\u4e00-\u9fff]` 和 Emoji，LaTeX 编译前必须清理
+
+### 7. arXiv → IEEE 正刊升级
+- 扫描所有 `@misc` / arXiv 条目，通过 Crossref API 查询是否已正式发表
+- 若找到 IEEE 期刊版本，生成替换建议（保留原 key，更新 DOI/journal/volume/pages）
+- 仅当 Crossref 返回 IEEE 期刊元数据时才视为正式发表，arXiv 预印本不等同于正式发表
+
+### 8. Key 与第一作者一致性检查
+- 从 `author` 字段提取第一作者 last name，与 bib key 前缀比对
+- 不匹配时给出重命名建议（如 `xu2025generative` → `zeng2025generative`）
+
+### 9. 扩展条目类型支持
 - `@book` / `@incollection`：书籍和章节（需 publisher + address）
 - `@techreport`：技术报告（需 institution + number）
 - `@standard`：技术标准（IEEE / 3GPP / ISO，需 organization + number）
@@ -103,6 +118,31 @@ model: opus
 **步骤 3**：检查是否与现有条目重复
 **步骤 4**：建议插入位置和引用键命名
 
+### 模式 E：Zotero-to-IEEE 批量清理（用户说"清理 Zotero 导出"、"批量格式化"、"Zotero bib 转 IEEE"）
+
+**背景**：Zotero/TechRxiv/Crossref 导出的 BibTeX 包含大量 IEEE Trans 不需要的字段，且常含中文 PDF 路径、HTML 实体、Emoji 等导致 LaTeX 编译失败。此模式专门处理此类"脏" .bib 文件。
+
+**步骤 1：深度解析** — 使用大括号深度计数器提取字段（见 [污染字段清单](references/polluted-fields-checklist.md)），避免嵌套 `{{...}}` 解析失败
+
+**步骤 2：污染字段清理** — 默认删除 12 类字段：
+`abstract`、`url`、`urldate`、`copyright`、`langid`/`language`、`annote`、`shorttitle`、`issn`、`keywords`、`file`、`publisher`、非 Early Access 条目的 `note`
+
+**步骤 3：HTML 实体转义** — `&amp;` → `\&`，em-dash `–` → `--`（仅 pages 字段）
+
+**步骤 4：Unicode 污染扫描** — 正则 `[\u4e00-\u9fff]` + Emoji，报告给用户确认删除
+
+**步骤 5：期刊名宏标准化** — 默认执行（非可选），使用预设映射表批量替换
+
+**步骤 6：Key-作者一致性检查** — 不匹配给出重命名建议
+
+**步骤 7：Early Access 处理** — 条件：`pages = {1--1}` 精确匹配 OR（无 volume AND 无 number AND 有 journal AND 有 DOI）；操作：删除独立 `doi` 字段，添加 `note = {early access, doi: XXX}`
+
+**步骤 8：arXiv → IEEE 升级扫描** — 对每个 `@misc`/arXiv 条目调用 Crossref API 查询是否已正式发表
+
+**步骤 9：BSTcontrol 保护** — 批处理时必须 `if etype.lower() == 'ieeetranbstctl': continue`
+
+**步骤 10：输出变更报告** — 等用户确认后写入
+
 ## 核心规则
 
 ### IEEE 参考文献格式规范
@@ -113,11 +153,12 @@ model: opus
    - BibTeX 的 `author` 字段中必须列出所有作者的完整姓名，**不允许使用 `and others` 省略**
    - 作者截断由 BSTcontrol 的 `ctluse_forced_etal` 和 `ctlmax_names_forced_et_al` 自动控制，不在 bib 条目中手动处理
    - 唯一例外：作者数量超过 30 位的论文（如大型 ML 团队论文），此时可列出前 10 位 + `and others`
-4. **Early Access 文章**：
+4. **Early Access 文章**（IEEEtran.bst 默认不显示独立 `doi` 字段，因此 DOI 必须合并进 note）：
    - 删除 `pages` 字段（`pages = {1--1}` 是 IEEE Xplore 占位符）
-   - 添加 `note = {early access}`
-   - 保留 `doi` 字段（唯一永久标识符）
+   - 删除独立 `doi = {...}` 字段（否则与 note 中的 doi 重复渲染）
+   - 添加 `note = {early access, doi: 10.1109/XXX.XXXX.XXXXXXX}`（DOI 写在 note 内）
    - 不需要 `volume` 和 `number`
+   - 精确识别规则：`pages = {1--1}` 精确匹配 OR（无 volume AND 无 number AND 有 journal AND 有 DOI）；避免把 `{1--16}` 误判为 Early Access
 5. **引用合并**：相邻的 `\cite{a}, \cite{b}` 应合并为 `\cite{a, b}`
 6. **条目类型**：
    - 期刊论文 → `@article`（需要 `journal`）
@@ -136,7 +177,14 @@ BibTeX key 推荐格式：`首作者姓年份+关键词`，如 `zhao2019computat
 |---------|------|---------|
 | 重复条目 | 同一论文两个不同 key | 删除重复，统一引用 |
 | \cite 未合并 | `\cite{a}, \cite{b}` | → `\cite{a, b}` |
-| Early Access 保留占位页码 | `pages = {1--1}` | 删除 pages，加 note |
+| Early Access 保留占位页码 | `pages = {1--1}` | 删除 pages，DOI 合并进 note |
+| Early Access DOI 重复 | 同时有 `doi = {...}` 和 `note = {early access, doi: ...}` | 删除独立 doi 字段 |
+| Zotero 污染字段 | `abstract`, `file`, `keywords` 等含中文 | 按污染字段清单批量删除 |
+| HTML 实体未转义 | `journal = {...&amp;...}` | `&amp;` → `\&` |
+| Unicode 污染 | 中文 `note`、Emoji `⭐` | 扫描 `[\u4e00-\u9fff]` 清理 |
+| Key 与第一作者不匹配 | `xu2025xxx` 但第一作者是 Zeng | 重命名为 `zeng2025xxx` |
+| arXiv 预印本未升级 | `@misc` 但实际已发 IEEE 期刊 | Crossref 查询后替换为 @article |
+| BSTcontrol 误处理 | 批处理时给 `@ieeetranbstctl` 加了 note | 解析时 `continue` 跳过 |
 | Conference 用了 @article | `@article` + `booktitle` | 改为 `@inproceedings` |
 | 期刊名硬编码 | `journal = {IEEE Trans. Wireless Commun.}` | → `journal = IEEE_J_WCOM` |
 | 标题拼写错误 | "Computation Computational" | 核实原文实际标题 |
@@ -161,6 +209,7 @@ BibTeX key 推荐格式：`首作者姓年份+关键词`，如 `zhao2019computat
 
 - [IEEE 参考文献格式规范详细手册](references/ieee-reference-rules.md) - 各条目类型的必需字段、格式要求、IEEE 标准宏用法等完整规范
 - [参考文献辅助脚本核心逻辑](references/utility-scripts.md) - analyze_bib.py 和 nameTranslate.py 的核心逻辑提取，可直接调用或参考实现
+- [Zotero 污染字段清单与批量清理指南](references/polluted-fields-checklist.md) - 12 类污染字段清单、HTML 实体转义、嵌套大括号安全解析、期刊宏映射表、arXiv→IEEE 升级流程
 
 ## 注意事项
 
