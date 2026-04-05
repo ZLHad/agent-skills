@@ -69,8 +69,8 @@ model: opus
 使用 Python 脚本执行搜索：
 
 ```bash
-cd /Users/zhanglinghao/Documents/Code/Skills/skills/claude-code-skills/literature-search
-python3 scripts/search.py --keywords "keyword1" "keyword2" \
+cd ~/.claude/skills/literature-search
+python3 scripts/search.py --keywords "hybrid action deep reinforcement learning" \
   --sources ieee semantic_scholar arxiv \
   --max-results 30 \
   --time-range 3y \
@@ -80,17 +80,47 @@ python3 scripts/search.py --keywords "keyword1" "keyword2" \
 
 完整参数说明见 [搜索参数说明](references/search-params.md)。
 
-**多轮搜索策略：**
+#### ⚠️ 关键词构造规则（踩坑经验，必读）
+
+IEEE Xplore 的 REST 搜索对**多词引号短语极其敏感**——多个引号短语之间默认是 AND-of-exact-phrase 匹配，
+一次塞入多个并列概念（例如 `"TD3 UAV offloading" "resource allocation"`）几乎必定返回 0 结果。
+
+**推荐做法（单关键词原则）：**
+- **每次搜索只传 1 个 2–4 词的精炼短语**（`--keywords "hybrid action reinforcement learning"`）
+- **禁止**把多个并列概念拼进同一个 `--keywords` 调用
+- 不同角度 → **发起多轮搜索**，每轮 1 个关键词，最后用 `--merge` 合并去重
+
+**如果必须一次传多个关键词：**
+- 默认 `--match-mode any`（v2 起默认）会用 OR 连接，保持高召回
+- 仅当你**明确**想要 AND-of-exact-phrase 的严格过滤时才用 `--match-mode all`
+- 中文关键词：IEEE/arXiv 是英文库，**先翻译成英文**再搜；可以在 `--round-id` 中保留中英文对照便于回溯
+
+#### 多轮搜索策略
 
 不要只用一组关键词！针对同一主题，从不同角度搜索：
 
 1. **核心术语搜索**：直接使用研究主题的标准术语
-2. **同义词/变体搜索**：使用不同表述（如 "reconfigurable intelligent surface" vs "RIS" vs "intelligent reflecting surface"）
-3. **方法论搜索**：从技术方法角度搜索（如 "deep reinforcement learning resource allocation"）
-4. **应用场景搜索**：从应用角度搜索（如 "UAV communication trajectory optimization"）
+2. **同义词/变体搜索**：使用不同表述（如 `"reconfigurable intelligent surface"` vs `"RIS"` vs `"intelligent reflecting surface"`）
+3. **方法论搜索**：从技术方法角度搜索（如 `"deep reinforcement learning resource allocation"`）
+4. **应用场景搜索**：从应用角度搜索（如 `"UAV trajectory optimization"`）
 5. **补充搜索**：如果某个子方向结果不够，追加搜索
 
 每轮搜索结果会自动去重合并。
+
+#### 故障处理（Failure Recovery）
+
+| 现象 | 诊断 | 行动 |
+|------|------|------|
+| 返回 0 篇 | 关键词太长/太具体/AND 过严 | 拆分成更短短语；或 `--match-mode any`；或换同义词 |
+| 返回超时/连接失败 | 源暂时不可用 | 换 `--sources arxiv crossref`；先跑 `--health` 诊断 |
+| HTTP 429 / Semantic Scholar 长延时 | 被限流 | 等待 60s 后重试；或从 `--sources` 中临时移除 S2 |
+| 结果 < 3 篇 | 关键词过于specific | 提示 AI 换更generic的 2-3 词短语重试 |
+
+**搜索前先跑 health check**（强烈推荐）：
+```bash
+python3 scripts/search.py --health
+```
+根据返回的 `ok` 和 `latency_ms` 动态调整 `--sources` 列表，跳过不可用源。
 
 **Google Scholar 补充搜索**（当 API 搜索结果不够时）：
 
@@ -109,9 +139,15 @@ site:ieeexplore.ieee.org "keyword" "IEEE Transactions on"
 搜索完成后，合并所有轮次结果去重，然后进行分析整理：
 
 1. **合并去重**：`python3 scripts/search.py --merge results/*_papers.json -o results`
-2. **读取合并后 JSON**，筛选 IEEE 顶刊/顶会论文（排除 early access、低相关度论文）
-3. **分类整理**：根据论文内容将论文归入 Related Work 子方向
-4. **生成分类映射 JSON**（categories.json）并调用最终报告生成
+2. **读取合并后 JSON**，筛选 IEEE 顶刊/顶会论文（默认保留 Early Access；仅当用户明确要求"不要 Early Access / 只要正式发表"时排除）
+3. **Early Access 识别启发式**（IEEE REST 不返回 volume/issue，可用以下规则粗判）：
+   - `volume == ""` 且 `number == ""` 且 `pages` 为 "1--xx" → 很可能 Early Access
+   - 需要精确判断时，对候选 DOI 调用 Crossref：`https://api.crossref.org/works/{doi}`，
+     若返回的 `message.volume` 和 `message.page` 均缺失则标记为 Early Access
+4. **自动初筛**（当结果 > 40 篇时）：按 venue 白名单 + 年份 + citation count 过滤到目标数量
+   - 优先级：`IEEE 顶刊 IF > 与主题的 abstract 相关度 > 引用数 > 发表时间`
+5. **分类整理**：根据论文内容将论文归入 Related Work 子方向
+6. **生成分类映射 JSON**（categories.json）并调用最终报告生成
 
 #### 生成最终报告
 
@@ -155,13 +191,27 @@ python3 scripts/search.py --finalize results/merged_papers.json \
 pip install requests feedparser
 ```
 
+## 快速参考（踩坑速查）
+
+| 场景 | 正确做法 | 错误做法 |
+|------|---------|---------|
+| 多关键词搜索 | 1 关键词/轮，多轮 merge | 一次塞 2+ 多词短语到 `--keywords` |
+| 中文主题 | 先翻译为英文，`--round-id` 存中英对照 | 直接用中文喂给 IEEE |
+| Semantic Scholar 429 | 从 `--sources` 临时去掉 | 硬刷直到 timeout |
+| 结果 = 0 | 短语拆短 / 换同义词 / `--match-mode any` | 直接放弃 |
+| 结果 > 40 篇 | venue + 年份 + citation 初筛到目标数 | 全部丢给用户手动筛 |
+| Early Access 判断 | 默认保留；需要时用 Crossref 补 volume/issue | 靠肉眼看 `contentType` 字段 |
+| 读摘要 | 直接读 JSON 字段（完整） | 从 markdown 预览中 grep |
+
 ## 注意事项
 
 - IEEE Xplore 搜索使用网页 REST 端点，无需 API Key，但有速率限制，搜索间隔建议 >= 1 秒
-- Semantic Scholar API 免费层 1000 次/5min，一般够用
+- IEEE Xplore 默认匹配模式已改为 `--match-mode any`（OR 连接，高召回），AND 严格模式请显式传 `--match-mode all`
+- Semantic Scholar API 免费层 1000 次/5min，但经常 429 限流；搜索前跑 `--health` 确认可用性
 - arXiv API 无需密钥，但建议控制请求频率
-- 多轮搜索时自动去重（基于 DOI -> arXiv ID -> 标题哈希）
+- Crossref 可作为 DOI 元数据的权威来源，用于补全 volume/issue/pages 和识别 Early Access
+- 多轮搜索时自动去重（基于 DOI → arXiv ID → 标题哈希）
 - 如果某个源连接失败，会自动跳过并使用其他源
 - 搜索结果保存在 `results/` 目录，包含时间戳，不会覆盖历史记录
-- **Markdown 报告中的摘要保持完整**，不做截断，确保后续精读和综述撰写有完整信息
+- **JSON 和 Markdown 报告中的摘要都保持完整**，不做截断；若只读 markdown 截取了前 N 字符，请改读 `*_papers.json` 的 `abstract` 字段
 - IEEE 顶刊/顶会完整列表见 [IEEE 顶刊/顶会参考](references/ieee-venues.md)

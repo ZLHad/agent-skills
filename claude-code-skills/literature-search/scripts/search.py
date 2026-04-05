@@ -65,6 +65,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Minimum citation count filter (default: 0)",
     )
     parser.add_argument(
+        "--match-mode", choices=["any", "all"], default="any",
+        help=(
+            "How to combine multiple --keywords: 'any' joins with OR (broad recall, default), "
+            "'all' joins with AND of exact phrases (strict, easily returns 0)."
+        ),
+    )
+    parser.add_argument(
         "--output-format", choices=["json", "markdown", "bibtex", "all"], default="all",
         help="Output format (default: all = JSON + MD + BibTeX)",
     )
@@ -277,6 +284,7 @@ def cmd_search(args):
                 max_results=args.max_results,
                 time_range=args.time_range,
                 sort=args.sort,
+                match_mode=args.match_mode,
             )
             round_label = args.round_id or " + ".join(args.keywords)
             for item in items:

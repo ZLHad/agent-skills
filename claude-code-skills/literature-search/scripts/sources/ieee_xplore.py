@@ -34,10 +34,21 @@ class IEEEXploreSource(PaperSource):
         **kwargs,
     ) -> List[PaperItem]:
         max_per_query = min(max_results, self.config.get("max_results_per_query", 50))
-        query_str = " ".join(f'"{kw}"' if " " in kw else kw for kw in keywords)
+        # match_mode: "all" -> AND of quoted phrases (strict); "any" -> OR (loose).
+        # Default to "any" because IEEE Xplore treats concatenated quoted phrases as an
+        # AND-of-exact-phrases match, which frequently returns 0 results when multiple
+        # multi-word keywords are supplied. OR keeps recall high for exploratory search.
+        match_mode = kwargs.get("match_mode", "any")
+        if match_mode == "all":
+            query_str = " ".join(f'"{kw}"' if " " in kw else kw for kw in keywords)
+        else:
+            parts = [f'"{kw}"' if " " in kw else kw for kw in keywords]
+            query_str = f" OR ".join(parts) if len(parts) > 1 else (parts[0] if parts else "")
         sort = kwargs.get("sort", "relevance")
         journals_filter = kwargs.get("journals")
-        self.logger.info(f"IEEE search: {query_str} (max={max_per_query}, sort={sort})")
+        self.logger.info(
+            f"IEEE search: {query_str} (max={max_per_query}, sort={sort}, match={match_mode})"
+        )
 
         payload = {
             "newsearch": True,
