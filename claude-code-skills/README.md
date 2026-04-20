@@ -14,6 +14,7 @@
 | [knowledge-base-manager](knowledge-base-manager/) | 管理与整理本地知识库文档 | `整理知识库`、`生成学习报告` |
 | [skill-auditor](skill-auditor/) | 审查 Skill 质量与规范性 | `审查skill`、`skill audit` |
 | [wechat-article-reader](wechat-article-reader/) | 微信公众号文章抓取（Playwright 无头浏览器） | `读公众号文章`、发送 `mp.weixin.qq.com` 链接 |
+| [paper-figure-to-pptx](paper-figure-to-pptx/) | 论文插图（架构图/流程图/方法图）转可编辑 PPTX，每个框/文字/箭头/公式都是原生 PPT 形状 | `论文图转PPT`、`paper figure to editable powerpoint` |
 
 ## 安装
 

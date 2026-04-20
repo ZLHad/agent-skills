@@ -65,6 +65,7 @@ Agent: write("~/.ssh/id_rsa", "")
 | **[literature-search](claude-code-skills/literature-search/)** | 文献检索助手 — IEEE Xplore / Semantic Scholar / arXiv 多源搜索，多轮去重，BibTeX 导出，分方向最终报告 |
 | **[ieee-reference-manager](claude-code-skills/ieee-reference-manager/)** | IEEE 参考文献管理（BibTeX 校验、期刊名标准化、DOI 验证、重复检测） |
 | **[zotero-citation](claude-code-skills/zotero-citation/)** | Zotero 文献引用（自动匹配引用位置，生成规范 Reference） |
+| **[paper-figure-to-pptx](claude-code-skills/paper-figure-to-pptx/)** | 论文插图转可编辑 PPTX — 架构图/流程图/方法图按原生 PPT 形状重建，便于后续编辑复用 |
 
 ### 知识管理
 
@@ -105,6 +106,7 @@ agent-skills/
 │   ├── ieee-reference-manager/       #   参考文献管理
 │   ├── knowledge-base-manager/       #   知识库管理
 │   ├── literature-search/            #   文献检索助手
+│   ├── paper-figure-to-pptx/         #   论文插图转可编辑 PPTX
 │   ├── skill-auditor/                #   Skill 质量审查
 │   ├── wechat-article-reader/        #   微信公众号文章抓取
 │   └── zotero-citation/              #   Zotero 引用
