@@ -113,10 +113,36 @@ model: opus
 
 ### 模式 D：新增参考文献（用户提供论文信息，需要生成 BibTeX 条目）
 
-**步骤 1**：根据用户提供的信息（DOI / 标题 / 作者）搜索论文
-**步骤 2**：生成规范的 BibTeX 条目（使用 IEEE 宏、完整字段）
-**步骤 3**：检查是否与现有条目重复
-**步骤 4**：建议插入位置和引用键命名
+> ⚠️ **铁律**：作者列表 / 标题 / 卷期页 等元数据**必须来自 Crossref API 反查**，绝不允许凭印象或基于论文标题"推断"作者名。AI 在元数据生成上的幻觉率非常高（实测出现过 5 位作者中 4 位完全错误的案例），DOI 反查是消除幻觉的唯一可靠手段。
+
+**步骤 1：DOI 优先获取**
+- 若用户提供 DOI → 直接进步骤 2
+- 若用户只提供标题 → 先 WebSearch 找到 DOI（优先 IEEE Xplore / dl.acm.org），再进步骤 2
+- 若 DOI 始终找不到 → 显式告诉用户"无法验证元数据，建议用户手动从 IEEE Xplore 复制 BibTeX"，**不要凭推测生成**
+
+**步骤 2：Crossref 反查（强制）**
+```
+WebFetch https://api.crossref.org/works/{DOI}
+```
+提取并核对：
+- author（完整作者列表，含全名）
+- title（标题，注意大小写保护）
+- container-title（期刊全名）
+- volume / issue / page / published 年月
+
+**步骤 3：DOI 大小写规范化**
+Crossref 常返回小写 DOI（如 `10.1109/tmc.2025.xxx`），但 IEEE 约定 publisher prefix 大写：
+- ✅ `10.1109/TMC.2025.XXXX`
+- ❌ `10.1109/tmc.2025.XXXX`
+强制规则：`re.sub(r'(10\.1109/)([a-z]+)\.', lambda m: m.group(1) + m.group(2).upper() + '.', doi)`
+
+**步骤 4：生成 BibTeX**
+基于 Crossref 数据 + IEEE 期刊宏（IEEEabrv.bib 中查询匹配宏），生成规范条目。完成后 echo 给用户："以下信息来自 Crossref（DOI: XXX），请最终核对作者列表"。
+
+**步骤 5：去重与命名**
+- 检查是否与现有条目重复（DOI 精确匹配 + 标题模糊匹配）
+- 检查 key 与第一作者一致（不匹配给重命名建议）
+- 建议插入位置
 
 ### 模式 E：Zotero-to-IEEE 批量清理（用户说"清理 Zotero 导出"、"批量格式化"、"Zotero bib 转 IEEE"）
 
@@ -143,6 +169,26 @@ model: opus
 
 **步骤 10：输出变更报告** — 等用户确认后写入
 
+### 模式 F：Early Access 升级扫描（用户说"检查 Early Access 升级状态"、"verify early access entries"、"投稿前回查 ref"）
+
+**触发场景**：投稿前 / 大修阶段 / 补稿阶段。Early Access 论文从初版到正式发表通常跨数月到 1 年，本地 bib 不会自动同步——必须主动回查。
+
+**步骤 1：扫描候选条目** — `grep -E "early access|note.*=.*early" Ref.bib` 提取所有含 `note = {early access, ...}` 或类似标记的条目
+
+**步骤 2：逐条 Crossref API 查询** — 对每个候选 DOI 调用 `https://api.crossref.org/works/{DOI}`
+
+**步骤 3：状态判定（决策树）**
+
+| Crossref 返回字段 | 判定 | 建议动作 |
+|---|---|---|
+| volume + issue + page 都齐全 | **正式发表** | 升级条目：补 vol/no/pages/month；note 改为 `doi: ...`（去 "early access" 字样）|
+| 仅有 page，无 volume / issue | **准正式发表（过渡态）** | 保守做法：保留 `early access` 字样，仅补 pages |
+| volume / issue / page 都没 | **仍 Early Access** | 维持不动 |
+
+**步骤 4：输出升级建议表** — 用户确认后批量 Edit
+
+**注意**：Crossref 的 `issued.date-parts` 字段中 year 比初次 indexing 时间晚，可作为正式发表的旁证（但不是充分条件）。
+
 ## 核心规则
 
 ### IEEE 参考文献格式规范
@@ -164,8 +210,22 @@ model: opus
    - 期刊论文 → `@article`（需要 `journal`）
    - 会议论文 → `@inproceedings`（需要 `booktitle`，不用 `journal`）
 7. **页码**：使用双连字符 `--`（如 `pages = {100--110}`）
-8. **DOI**：标准 IEEEtran.bst 默认不显示 DOI，但保留 `doi` 字段无害且有助于验证
-9. **BSTcontrol**：必须在 .bib 文件开头定义，且在 .tex 中用 `\bstctlcite{IEEEexample:BSTcontrol}` 调用
+8. **DOI 大小写**：IEEE 约定 publisher prefix 大写（`10.1109/TMC...`、`10.1109/TWC...`、`10.1109/JSAC...`），**Crossref 经常返回小写**，必须强制纠正：
+   ```python
+   re.sub(r'(10\.1109/)([a-z]+)\.', lambda m: m.group(1) + m.group(2).upper() + '.', doi)
+   ```
+9. **DOI 字段渲染（关键）—— 分 IEEEtran.bst 版本处理**：
+
+   | bst 版本 | `doi=` 字段 | `note = {..., doi: ...}` | 推荐做法 |
+   |---|---|---|---|
+   | **v1.14+ (2015-)** | ✅ 自动渲染为 "doi: ..." | ✅ 也渲染 | **任选一种**，避免两处都写（会重复）|
+   | **v1.12 / v1.13 (2007-2014)** | ❌ **静默忽略，DOI 蒸发** | ✅ 字符串原样输出 | **必须用 note**，否则 PDF 中 DOI 完全消失 |
+
+   **审查时第一步**：`grep -E "version 1\.[0-9]+" IEEEtran.bst` 检测本地版本，再决定建议。
+
+   **常见误判**：IEEE Reference Preparation Assistant 这类外部 validator 期望结构化 `doi=` 字段，但用户本地 bst 是 v1.12 时**绝不能照办**——它的"建议"如果照搬会让 PDF 渲染丢 DOI（实测案例已验证）。
+
+10. **BSTcontrol**：必须在 .bib 文件开头定义，且在 .tex 中用 `\bstctlcite{IEEEexample:BSTcontrol}` 调用
 
 ### 命名约定
 
@@ -190,6 +250,11 @@ BibTeX key 推荐格式：`首作者姓年份+关键词`，如 `zhao2019computat
 | 标题拼写错误 | "Computation Computational" | 核实原文实际标题 |
 | 使用 `and others` 省略作者 | `author = {A and others}` | 补全所有作者完整姓名（≤30 位必须全列） |
 | 缺失必要字段 | 无 volume/number/pages | 通过 DOI 补全 |
+| **作者杜撰** | 凭印象写作者名（5/8 位错） | 必须 Crossref API 反查 (Mode D 步骤 2 强制) |
+| **DOI 大小写** | `10.1109/tmc...` | 强制大写 publisher prefix → `10.1109/TMC...` |
+| **Early Access 升级未跟进** | 论文已正式发表但 bib 仍标 early access | Mode F 投稿前回查 Crossref，补 vol/no/pages |
+| **DOI 字段错误位置** | v1.12 bst 用 `doi=` 字段 | 检测 bst 版本：v1.12 用 `note`，v1.14+ 任选 |
+| **杂志/网络文章错用 @article** | IEEE Spectrum 短文用 `@article` 但缺 vol/no/pages | 改用 `@misc` + `howpublished` + `url` |
 
 ## 辅助工具集成
 
@@ -217,5 +282,7 @@ BibTeX key 推荐格式：`首作者姓年份+关键词`，如 `zhao2019computat
 2. **修改前必须展示 Before/After**，等用户确认后再执行（遵循全局 CLAUDE.md 规则）
 3. **DOI 验证时注意**：部分新发表或 Early Access 文章可能尚未被搜索引擎索引
 4. **标题中的特殊格式**（如 `{{...}}`）是 BibTeX 的大小写保护，不要随意删除
-5. **搜索验证论文时**，优先使用 DOI 查询，其次使用标题+作者搜索
+5. **作者列表 / 元数据生成时不要凭印象**——必须 Crossref API 反查（实测案例：5/8 位作者被 AI 杜撰）
 6. **不要自动删除未引用条目**——用户可能正在写作中，留待确认
+7. **审查 .bib 之前先 grep 检测 IEEEtran.bst 版本**——v1.12 与 v1.14 对 `doi=` 字段处理完全不同，盲目搬用 IEEE Reference Preparation Assistant 的"DOI 移到 doi 字段"建议会导致 PDF 渲染丢 DOI
+8. **IEEE Reference Preparation Assistant 是辅助工具，不是绝对权威**——它的建议要结合本地 bst 版本和实际 PDF 渲染结果判断，不能盲从

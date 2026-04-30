@@ -383,7 +383,101 @@ URL 格式：`https://doi.org/10.1109/TWC.2024.xxxx`
 - 搜索标题或 DOI
 - 比对作者、年份、期刊、页码
 
+### 通过 Crossref API（强烈推荐）
+URL 格式：`https://api.crossref.org/works/{DOI}`
+- 返回 JSON 元数据：完整 author 列表、container-title、volume、issue、page、issued
+- **本 skill 应优先使用 Crossref API 而非 DOI resolver**——前者直接给结构化字段，无需 HTML 解析
+- 通过 WebFetch 调用，prompt 中要求 "extract author list, year, volume, issue, page range"
+
+### DOI 大小写规范
+
+**IEEE 约定**：DOI 中 publisher 子串大写
+- ✅ `10.1109/TMC.2025.3608303`
+- ✅ `10.1109/JSAC.2024.3401234`
+- ❌ `10.1109/tmc.2025.3608303`（**Crossref 经常返回小写，必须强制纠正**）
+
+**常见 prefix 对照**：
+TMC, TWC, TVT, JSAC, COMST, LWC, TSP, TII, TON, TIFS, TC, TPDS, TBC, TASE, TGRS, TIM, TIT, TIP, TKDE, TNN, TNNLS, TSE, TPAMI, ICC, GLOBECOM
+
+**强制规则**（每次从 Crossref 抓 DOI 后必须执行）：
+```python
+import re
+doi = re.sub(
+    r'(10\.1109/)([a-z]+)\.',
+    lambda m: m.group(1) + m.group(2).upper() + '.',
+    doi
+)
+```
+
 ### 批量验证策略
 1. 提取所有 DOI
-2. 格式检查（应以 `10.` 开头）
+2. 格式检查（应以 `10.` 开头）+ 大小写纠正（10.1109/ 后的字母全大写）
 3. 按优先级验证（Early Access > 近年 > 早期）
+
+---
+
+## 七、杂志 / 网络文章类型选择决策树
+
+许多 IEEE 出版物（如 IEEE Spectrum、IEEE Communications Magazine、IEEE Network、IEEE Internet of Things Magazine）的某些文章是**短篇评论 / 技术报道 / 网络专栏**，没有传统的 vol/no/pages。强写 `@article` 会被 IEEE Reference Preparation Assistant 报"could not find page numbers"。
+
+### 决策树
+
+| 情境 | 类型 | 必需字段 |
+|---|---|---|
+| **期刊正式论文（有 vol/no/pages）** | `@article` | author, title, journal (IEEE 宏), year, volume, number, pages |
+| **杂志短文 / 网络专栏 / 技术报道（无 vol/no/pages）** | `@misc` | author, title, howpublished, year, month, url |
+| **Early Access（已分配 DOI 但无 vol/no）** | `@article` + Early Access 写法 | author, title, journal, year, note (含 DOI) |
+| **arXiv 预印本** | `@misc` | author, title, howpublished="arXiv preprint", eprint, year |
+| **白皮书 / 技术报告** | `@techreport` | author, title, institution, number, year |
+
+### 典型示例
+
+#### IEEE Spectrum 网络文章
+
+❌ **错误写法**（@article 但缺关键字段）：
+```bibtex
+@article{pultarova2025nvidia,
+  author  = {Pultarova, Tereza},
+  title   = {{Nvidia Sends a Powerful GPU to Space}},
+  journal = IEEE_M_SPECT,
+  year    = {2025},
+  month   = nov
+}
+```
+→ IEEE 报告会警告 "could not find page numbers"。
+
+✅ **正确写法**（@misc 表网络文章）：
+```bibtex
+@misc{pultarova2025nvidia,
+  author       = {Pultarova, Tereza},
+  title        = {{Nvidia Sends a Powerful GPU to Space}},
+  howpublished = {{IEEE Spectrum}},
+  year         = {2025},
+  month        = nov,
+  url          = {https://spectrum.ieee.org/...}
+}
+```
+
+#### arXiv 预印本
+
+```bibtex
+@misc{author2024example,
+  author       = {Author, Name},
+  title        = {Example Paper},
+  howpublished = {arXiv preprint arXiv:2401.12345},
+  year         = {2024},
+  eprint       = {2401.12345},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG}
+}
+```
+
+### 识别规则
+
+判断"是否应该用 @misc 而非 @article"：
+- 期刊名是 **Magazine/Spectrum/Letters Tech Brief** 类型
+- 缺 `volume` AND 缺 `number` AND 缺 `pages`
+- DOI 也不一定有
+- 文章长度 ≤ 4 页 / 内容是技术报道而非研究论文
+
+→ 优先选 `@misc`
